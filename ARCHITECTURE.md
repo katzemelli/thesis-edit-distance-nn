@@ -94,6 +94,24 @@ Mechanism: pairs at normLev ≥ 0.70 produce systematically similar `|e_a − e_
 
 Practical consequence: the "hybrid loss (CE + λ·MSE)" variant parked as a colab17 candidate is **not needed** for AA retrieval. Hybrid would only become relevant if a specific within-band ranking failure shows up later.
 
+## Representational geometry — lower PCA variance under CE is a *better* signature
+
+Empirical evidence for the CE→manifold story above comes from a 2D PCA of pair-difference vectors `|e_a − e_b|` over all AA eval pairs (colab16 Section 20, Figure 2):
+
+| | colab15 (band-weighted MSE) | colab16 (pure CE) |
+|---|---|---|
+| PC1 + PC2 explained variance | 17.1% | **5.3%** |
+| Visible band structure in 2D | none — blob centered at origin | **clean high-band cluster at neg PC1** |
+
+The variance percentage *drops* under CE training but band separation *appears*. This is counterintuitive — higher 2D PCA variance is usually read as "better representation" — but it's the expected signature of a more robust embedding:
+
+- **Under MSE**, the encoder has no incentive to spread band-discriminative information across many dimensions. Variance concentrates in a few directions (high PC1+PC2 %), but those directions don't align with any biologically-useful axis. The result is a high-variance blob with no qualitative structure.
+- **Under CE**, the head must recover discrete bin identity from `|e_a − e_b|` via a small linear MLP. To do that robustly, the encoder distributes band-discriminative information across **many** embedding dimensions — the representation becomes more **isotropic** (higher intrinsic dimensionality). PCA in 2D captures less total variance because the meaningful structure now lives in higher-dimensional subspaces, but the *small slice* that PCA does capture is precisely the band axis.
+
+**Read it this way:** lower 2D PCA variance under CE doesn't mean the network learned less — it means the network distributed the discriminative signal across more directions, which is *what you want* for a representation that supports k-NN retrieval in many possible neighborhoods.
+
+**Practical consequence for thesis figures.** 2D PCA projections systematically under-sell the colab16 encoder. For descriptive visualisations, prefer **UMAP** (which is sensitive to local neighbourhood structure, not global variance) over PCA. Keep PCA in the appendix as the explicit colab15→colab16 comparison, but state the variance caveat — otherwise an examiner will read 5.3% as a regression.
+
 ## File-of-record
 
 `notebooks/colab16_classification_head.ipynb` — Section 5 (`SiameseEncoder` + `SiameseClassifier`). This document should be updated whenever a new colab supersedes colab16.

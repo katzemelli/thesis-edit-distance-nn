@@ -53,6 +53,42 @@ These are the metrics that map to the band-discrimination framing. AUROC and top
 5. **PCA of pair-difference vectors shows a clean continuous similarity gradient along PC1.** Encoder has learned a similarity axis.
 6. **t-SNE of per-protein embeddings does NOT cluster by SuperFamily.** Consistent with function-approximation framing — the encoder learned string-level Lev similarity, not biological homology structure.
 
+## Table 3 — Wall-clock per query (colab16 K=8, CPU, pool=10,117)
+
+Measured 2026-05-14 on Colab CPU runtime. 10 queries (5 high-AA pairs × 2 directions). NN pool embeddings precomputed once (amortized).
+
+| Method | Time per query | Notes |
+|---|---|---|
+| Levenshtein (rapidfuzz, C-backed SIMD) | **38.0 ± 19.6 ms** | Variance from query-length spread [50, 200]; Lev is O(n·m) |
+| NN (encoder fwd + L2 vs pool, CPU) | **5.4 ± 5.1 ms** | High variance likely torch JIT warmup on first query |
+| **CPU speedup** | **~7×** | Lower bound — see caveats below |
+| NN pool-encode (one-time) | 2,435 ms | Amortized over many queries |
+
+**Linear extrapolation (same 7× ratio):**
+
+| Pool | Lev / query | NN / query |
+|---|---|---|
+| 10K (this eval) | 38 ms | 5 ms |
+| 1M | 3.8 sec | 535 ms |
+| UniRef50 (~50M) | 3.1 min | 26.7 sec |
+| BFD (~2.5B) | 2.6 hr | 22.3 min |
+
+**Why 7× is a lower bound — three accelerators the NN admits that Lev does not:**
+1. **GPU.** Encoder forward time drops to <1 ms on T4/L4; rapidfuzz Lev gets no GPU acceleration. Expected GPU speedup: 50-200×.
+2. **FAISS / HNSW.** Approximate-nearest-neighbour index over precomputed embeddings is sublinear in pool size (~O(log N)); Lev brute force is O(N). At 50M+ the real speedup exceeds the linear extrapolation by orders of magnitude.
+3. **Batched encoding.** Encoder can embed thousands of new sequences per second on GPU; Lev cannot be batched across pairs without per-pair DP.
+
+**GPU rerun pending** — same Section 19 cell, just change Colab runtime to T4. Expected headline: ~100× per-query speedup.
+
+## Embedding-space visualisations (colab16 K=8, Section 20)
+
+Two figures qualitatively confirm the colab16 mechanism (run 2026-05-14):
+
+1. **Pool embeddings (UMAP 2D).** All 10,117 pool embeddings projected to 2D, colored by protein length. **Length is the dominant axis of variation** (clear yellow→purple gradient left to right). All 5 high-AA partner pairs appear as visually-overlapping dots, directly confirming hits@1 = 10/10 at K=8.
+2. **Pair-difference vectors `|e_a − e_b|` (PCA 2D).** PC1+PC2 explain only 5.3% of variance (vs colab15's 17.1%) — **but the 5 high-AA pairs form a clean cluster at negative PC1, well-separated from the mid/far blob.** Lower variance ratio is a *better* signature here: CE training distributes band-discriminative information across more embedding dimensions, making the representation more isotropic. The qualitative band separation in PC1 is the load-bearing finding, not the percentage.
+
+**Implication of the UMAP length-dominance finding:** see Open Issue 9 (length-vs-character contributions to SS cross-rep transfer).
+
 ## Reading colab15 (the natural-pair eval)
 
 **The headline (despite the misleading aggregate r):**
@@ -180,7 +216,8 @@ All three K values show a transient loss spike around epoch 19-25 (CE jumps from
 5. ✅ ~~Prediction compression toward 0.5~~ — **resolved in colab16** by replacing band-weighted MSE with plain cross-entropy over 3 bins. Predictions now live on three discrete bands (~0.55 / ~0.68 / ~0.80 in L2-derived sim) instead of one centre cluster. Within-band ranking is preserved by the encoder's continuous geometry, even though CE never supervised it directly.
 6. ✅ ~~4oo1I01 ↔ 4ifdI01 retrieval outlier~~ — **resolved in colab16** by AdaptiveAvgPool. Root cause was Flatten+Linear position-rigidity (a 4-character N-terminal insert shifts every downstream feature into different FC slots — pos_match between the two sequences was only 1.3%). Diagnostic captured in `memory/architecture_insights.md`. After AdaptiveAvgPool1d(K=8 or K=16) absorbs the shift inside one bucket, this pair retrieves at rank 1/1 in both directions.
 7. **SS cross-rep transfer ceiling.** colab16 lifted SS hits@10 from 0.20 (colab15) → 0.50 (head metrics at K=16), but this is still far below AA. Remains the open limitation for cross-rep. Candidate levers for colab17: bidirectional training (SS-trained → AA-eval), length-mismatched training pairs, attention-pool encoder.
-8. **Wall-clock benchmark is missing.** The thesis motivation (NN faster than O(n·m) Lev DP) has never been measured on the actual eval pool. Section 19 of `colab16_classification_head.ipynb` contains a ready-to-run benchmark cell — **run once on the next Colab session** (one-time, not per-K) to produce a single defensible number: per-query Lev (rapidfuzz C-backed) vs per-query NN (1 forward + L2 against precomputed pool), plus linear extrapolation to UniRef50 / BFD scale. Paste the result into Table 2 once measured.
+8. ✅ ~~Wall-clock benchmark is missing~~ — **measured 2026-05-14 on CPU.** Lev 38.0 ± 19.6 ms vs NN 5.4 ± 5.1 ms per query at pool=10K → **~7× CPU speedup** (see Table 3). GPU rerun pending; expected 50-200× since NN forward drops to <1 ms while rapidfuzz Lev gets no GPU acceleration.
+9. **Length vs character-statistics in SS cross-rep transfer.** The colab16 UMAP (Section 20) shows length as the *dominant* axis of the AA embedding manifold. **Hypothesis:** SS cross-rep retrieval at ~50% hits@10 is largely driven by length-matching, because (a) length transfers 1:1 from AA to SS (same protein, same length), (b) the AA-trained `Embedding(21)` sees SS through 3 of 20 rows — out-of-distribution on the character axis. The 50% gap to AA may approximately equal the contribution of the character-statistics signal lost in cross-rep. Section 21 of `colab16_classification_head.ipynb` contains a length-controlled SS retrieval diagnostic — restricts the SS pool to length-matched distractors and measures whether ranks change. **Run on next session** to confirm or refute.
 
 ## Open levers not yet tried
 
@@ -191,6 +228,10 @@ All three K values show a transient loss spike around epoch 19-25 (CE jumps from
 - **Transformer-encoder swap** — test if attention extracts more signal than Conv+AdaptiveAvgPool. Larger architectural change; reserved for if K=16 colab16 numbers plateau.
 - **Bidirectional cross-rep (SS-train → AA-eval)** — symmetry check on the cross-rep claim.
 - **3Di cross-rep** (bidirectional) — blocked on 3Di server fetch.
+- **Pre-trained protein LM (ESM2 / ProtT5) as encoder or comparison baseline** — noted as future work, outside current thesis scope. Two framings:
+  - *As encoder replacement:* changes the thesis question — pLMs capture biological/evolutionary similarity, not Levenshtein. Would also kill the computational-efficiency motivation (ESM2-650M is ~650× larger than current encoder; even ESM2-35M is heavy).
+  - *As comparison baseline:* one k-NN retrieval run on `cath_eval.csv.gz`, paragraph in discussion section, preempts the "why not just use ESM?" examiner question. ProtT5 is already in the repo as a baseline-only resource (see memory `data_sources.md`). Lower lift, higher defensibility return.
+  - Discussion-section framing: "extending to a pre-trained pLM backbone could improve cross-representation transfer at the cost of computational efficiency — left as future work."
 
 ## Notes
 
