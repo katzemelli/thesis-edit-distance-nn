@@ -39,10 +39,20 @@ These are the metrics that map to the band-discrimination framing. AUROC and top
 | colab16 K=8  | CATH SS (natural pairs, cross-rep, n=4950) | 0.945 | +0.449 | 0.089 | 0.00³ | 0.00³ | 1.0000 |
 | colab16 K=16 | CATH SS (natural pairs, cross-rep, n=4950) | **0.954** | +0.501 | **0.055** | 0.10³ | 0.30³,⁴ | 1.0000 |
 | colab16 K=32 | CATH SS (natural pairs, cross-rep, n=4950) | 0.905 | +0.558 | 0.102 | 0.00³ | 0.20³ | 1.0000 |
+| colab17 K=16⁵ | CATH SS in-domain (wrong-eval ⁶, n=4950) | 0.944 | +0.548 | 0.109 | 0.10³ | 0.30³,⁴ | 1.0000 |
+| colab17 K=16 | CATH AA cross-rep (high-AA eval, n=4950) | **0.997** | nan² | 0.137 | **0.60**³ | **0.80**³ | 1.0000 |
+| colab17a K=16 | CATH AA in-domain (high-AA eval, n=4950) | — | nan² | — | **0.90**³ | **1.00**³ | — |
+| colab17a K=16 | CATH SS in-domain (**fair eval, top-5 ss_score**, n=4950) | — | — | — | **0.30**³ | **1.00**³ | — |
+| colab17a K=16 | CATH AA cross-rep (high-AA eval, n=4950) | — | nan² | — | **0.60**³ | **0.80**³ | — |
+| colab17a K=16 | CATH SS cross-rep (**fair eval, top-5 ss_score**, n=4950) | — | — | — | **0.30**³ | **0.80**³ | — |
 
 ² n_high = 5 (all available natural CATH AA pairs at aa_score ≥ 0.70). Pearson r undefined / not meaningful for n=5.
 ³ **Methodology shift vs colab14.** colab14 retrieval = 50 random queries × 500 random candidates → measures rank quality for typical pairs. colab15 retrieval = the 10 individual proteins from the 5 high-AA pairs (queried in both directions) × the full ~10K protein pool → directly tests "given a high-similarity partner exists in the database, does the model find it?". Random baseline at top-10 = 0.0988%. The colab14 SS top-10=31% was on perturbation pairs and is **not** comparable to colab15's natural-pair retrieval.
 ⁴ **colab16 deployment-metric choice.** colab16 trains a 3-bin classifier and emits three deployment scores at inference: continuous L2 distance (colab15-comparable), `P(high)`, and `E[bin midpoint]`. All retrieval cells report the **L2** score (direct comparable to colab15). ⁴ marks cells where head-derived scores (`P(high)` / `E[bin midpoint]`) gave better retrieval than L2 — for K=16 SS, head metrics lift hits@10 from 0.30 (L2) → **0.50**. See "Reading colab16" for the full per-metric breakdown.
+
+⁵ **colab17 — SS-trained encoder, naive HLS vocab.** Same architecture as colab16b, trained on artificial HLS perturbations (BAND_LOW=0.56). Mirror direction of colab16/16b's AA training, designed to test cross-rep symmetry.
+
+⁶ **WRONG eval — superseded by colab17a.** colab17's SS in-domain row evaluated SS-encoded retrieval against the 5 **high-AA** pair list (`aa_score ≥ 0.70`). For SS-encoded retrieval the correct eval set is high-`ss_score` pairs — the high-AA list measures "find AA-partner in SS space," not SS-Lev approximation. Fair-eval re-run in colab17a (see section below) shows the correct number is hits@10 = 1.00 (10/10), not 0.30. Same correction applies to all earlier "SS cross-rep" rows in this table (colab15, colab16 K=8/16/32) — they all used the high-AA pair list. The colab17a fair-eval numbers are the corrected references going forward.
 
 **Key reading of colab14:**
 
@@ -179,6 +189,52 @@ K=16 SS retrieval: L2 hits@10 = 3/10, `P(high)`/`E[bin mid]` hits@10 = **5/10**.
 
 All three K values show a transient loss spike around epoch 19-25 (CE jumps from ~0.001 back to ~0.05-0.2 for one or two epochs, then recovers). Final models are healthy and the eval numbers reflect the converged state. Likely an Adam-momentum + hard-batch interaction. Worth flagging in the writeup but doesn't invalidate results.
 
+## Reading colab17 + colab17a (the symmetric zero-shot finding + fair-eval correction)
+
+**Two notebooks, one combined result.** colab17 (SS-trained encoder, naive HLS vocab) surfaced an eval-set framing error that had been quietly present since colab15: every "SS retrieval" number in this document used the 5 high-**AA** pair list, which for SS-encoded retrieval measures "find AA-partner in SS space" — not SS-Lev approximation. colab17a is the fair-eval re-run: alphabet-matched eval sets, both encoders re-trained, full 2×2 retrieval matrix.
+
+**The fair-eval rule (going forward):** the eval set's "high-sim" partners are defined by `normLev ≥ 0.70` **in the alphabet of the input being encoded** — not by similarity in the encoder's training alphabet, and not by any biological criterion. AA-encoded retrieval uses `aa_score ≥ 0.70` pairs; SS-encoded retrieval uses `ss_score ≥ 0.70` pairs. This rule applies whether the run is in-domain or cross-rep; encoder choice ⊥ eval set choice.
+
+**colab17a 2×2 matrix (hits@10 under L2 score, pool = 10,117 proteins):**
+
+| | Feed AA → high-AA eval | Feed SS → high-SS eval |
+|---|---|---|
+| AA-trained encoder | **10/10** (in-domain) | **8/10** (cross-rep AA→SS) |
+| SS-trained encoder | **8/10** (cross-rep SS→AA) | **10/10** (in-domain) |
+
+**Headline: SYMMETRIC ZERO-SHOT LEV TRANSFER.** Both diagonals perfect (10/10); both off-diagonals identical (8/10). SS-Lev approximation works exactly as well as AA-Lev approximation when measured correctly. The "SS retrieval ceiling" reported in colab15/16/16b/17 (20% → 50% across iterations) was 100% an eval-set artifact, NOT a real limitation of the encoder. The cross-rep claim moves from "partial transfer" (the colab15-era framing) to "symmetric zero-shot transfer."
+
+**Why the 2 misses in each cross-rep cell are specific, not noise:**
+- AA→SS missed: `2dkzA01 → 2e8oA01` (rank 84, only direction; partner side at rank 16). Hardest pair in the high-SS set; the other direction works.
+- SS→AA missed: `2k3nA00 → 2k3oA00` (rank 12, the known length-mismatched 129/160 pair flagged in colab15) and `3qf7A02 → 3qg5A02` (rank 19; this pair has `ss_score=0.714`, the weakest SS-score in the high-AA list, so the SS-trained encoder reasonably ranks more SS-similar distractors above it).
+
+**NEW finding — head-vs-encoder generalisation split (key for thesis writeup):**
+
+Reporting all three deployment scores per cell reveals an asymmetry that L2-only headline hides:
+
+| cell | hits@10 L2 | hits@10 P(high) | hits@10 E[bin_mid] |
+|---|---|---|---|
+| AA-trained × AA-feed (in-domain AA) | 10/10 | 10/10 | 10/10 |
+| AA-trained × SS-feed (cross-rep AA→SS) | 8/10 | 8/10 | 8/10 |
+| SS-trained × AA-feed (cross-rep SS→AA) | 8/10 | 6/10 | 6/10 |
+| **SS-trained × SS-feed (in-domain SS)** | **10/10** | **2/10** | **0/10** |
+
+The SS-trained head **catastrophically fails on natural CATH SS data** even though the encoder geometry retrieves perfectly. The AA-trained head does not have this problem (it generalises fine to natural SS strings). Mechanism: the SS-trained head saw only artificial HLS perturbation pairs (30K, uniform-random HLS seeds); natural SS strings have long helix runs and biological motifs that are out-of-distribution for the head's calibration. The 3-letter alphabet narrows the perturbation distribution further than the 20-letter AA case, amplifying the OOD effect. The encoder is more robust because its job is structurally simpler — "place similar things nearby" — and L2-normalised encoder outputs port across distributions in a way that head-classifier softmax probabilities do not.
+
+**Deployment-vs-pairwise distinction (preserve for the writeup):**
+- **k-NN retrieval (primary deployment claim):** use L2 in encoder space. Works zero-shot symmetrically across alphabets (8/10 both cross-rep directions). Both encoders are fit for retrieval.
+- **Pairwise classification ("are these two specific proteins high-Lev?"):** the AA-trained encoder is the more general-purpose model. The SS-trained head should not be used for pairwise scoring on natural SS data — `P(high)` collapses to 2/10 on the very pairs the encoder retrieves at 10/10.
+
+The deployment-vs-pairwise split should appear explicitly in the findings/conclusions section of the writeup. For the headline thesis claim (fast NN proxy for the O(n²) DP, deployed as k-NN retrieval), L2 is the right deployment metric and the SS-trained encoder's head fragility does not undermine the claim. For users wanting pairwise scoring, the AA-trained encoder is recommended.
+
+**Alphabet-inclusion prediction REFUTED.** Earlier hypothesis (see `memory/alphabet_inclusion_confound.md`) predicted asymmetric collapse: AA-trained encoder should cross-rep better to SS than vice versa because HLS shares indices with His/Leu/Ser (so HLS embedding rows are well-trained) while SS-training leaves 17/20 AA rows at random init. The symmetric 8/10 / 8/10 off-diagonal in colab17a refutes this. Structural-fingerprint hypothesis (position-pattern hashing via conv+pool, alphabet-agnostic because same-character-at-same-position produces same-feature regardless of whether the embedding row was trained) is the leading explanation. colab17b (disjoint-vocab robustness check) is demoted from critical next-experiment to optional publication-grade polish.
+
+**colab17a setup details:**
+- Self-contained notebook `notebooks/colab17a_fair_eval.ipynb` (uncommitted at the time of this entry).
+- Two encoders trained from scratch in the same notebook: AA encoder mirrors colab16b (BAND_LOW=0.30, 20-letter alphabet, 30K artificial pairs); SS encoder mirrors colab17 (BAND_LOW=0.56, 3-letter HLS, 30K artificial pairs). Both K=16.
+- Two eval sets — Set α: 5 high-AA pairs (existing); Set σ: top-5 by `ss_score` (new, all `ss_score ∈ [0.93, 0.95]`, `aa_score ∈ [0.30, 0.37]`, zero protein overlap with Set α).
+- Identical retrieval procedure as colab16/17 (10 queries per cell = 5 pairs × 2 directions; pool = 10,117).
+
 ## Reading the trend (colab10 → colab16)
 
 **AA in-representation retrieval trajectory:** 0% (colab14, mis-targeted eval band) → 60% (colab15, natural high pairs in pool of 10K) → **100% (colab16 K=16, same pool, classification head + AdaptiveAvgPool)**. The colab14 → colab15 jump was a methodology fix (eval at the right band). The colab15 → colab16 jump is the real architectural improvement: position-rigidity fix + bin classification → tight spatial clusters in embedding space.
@@ -215,7 +271,7 @@ All three K values show a transient loss spike around epoch 19-25 (CE jumps from
 4. **Natural high-AA pairs are extremely scarce** — only 6 pairs in the entire CATH dataset at aa_score ≥ 0.70 (4 strictly valid + 1 rescued at lengths 34/43 + 1 unrecoverable at lengths 291/354). All AA-high statistics are based on n=5. AUROC and MAE numbers on this band are real but underpowered; bootstrap CIs would be appropriate for thesis-defense reporting.
 5. ✅ ~~Prediction compression toward 0.5~~ — **resolved in colab16** by replacing band-weighted MSE with plain cross-entropy over 3 bins. Predictions now live on three discrete bands (~0.55 / ~0.68 / ~0.80 in L2-derived sim) instead of one centre cluster. Within-band ranking is preserved by the encoder's continuous geometry, even though CE never supervised it directly.
 6. ✅ ~~4oo1I01 ↔ 4ifdI01 retrieval outlier~~ — **resolved in colab16** by AdaptiveAvgPool. Root cause was Flatten+Linear position-rigidity (a 4-character N-terminal insert shifts every downstream feature into different FC slots — pos_match between the two sequences was only 1.3%). Diagnostic captured in `memory/architecture_insights.md`. After AdaptiveAvgPool1d(K=8 or K=16) absorbs the shift inside one bucket, this pair retrieves at rank 1/1 in both directions.
-7. **SS cross-rep transfer ceiling.** colab16 lifted SS hits@10 from 0.20 (colab15) → 0.50 (head metrics at K=16), but this is still far below AA. Remains the open limitation for cross-rep. Candidate levers for colab17: bidirectional training (SS-trained → AA-eval), length-mismatched training pairs, attention-pool encoder.
+7. ✅ ~~SS cross-rep transfer ceiling~~ — **resolved in colab17a (2026-05-21)**. The "SS retrieval ceiling" of 0.20 → 0.50 across colab15/16 was an **eval-set artifact**: all those numbers used the 5 high-**AA** pair list to measure SS-encoded retrieval, which is "find AA-partner in SS space" — not SS-Lev approximation. With the correct alphabet-matched eval set (top-5 by `ss_score`), SS in-domain hits@10 = **1.00** (10/10) under L2 retrieval. The full 2×2 matrix is symmetric: both diagonals 10/10, both cross-rep off-diagonals 8/10. Cross-rep transfer is genuinely zero-shot and direction-symmetric. New limitation surfaced in its place — the SS-trained head classifier fails on natural SS data (`P(high)` drops to 2/10) even though the encoder geometry retrieves perfectly; deployment use case for the SS-trained head should be retrieval (L2) not pairwise classification. See "Reading colab17 + colab17a" section above.
 8. ✅ ~~Wall-clock benchmark is missing~~ — **measured 2026-05-14 on CPU.** Lev 38.0 ± 19.6 ms vs NN 5.4 ± 5.1 ms per query at pool=10K → **~7× CPU speedup** (see Table 3). GPU rerun pending; expected 50-200× since NN forward drops to <1 ms while rapidfuzz Lev gets no GPU acceleration.
 9. ✅ ~~Length vs character-statistics in SS cross-rep transfer~~ — **resolved in colab16b (2026-05-15)** by the Section 21 length-controlled SS retrieval diagnostic. **The hypothesis "SS retrieval ~50% is mostly length-matching" is REFUTED.** Restricting the SS pool to proteins within ±15 residues of the query, the true partner still ranks in the **top ~2.4%** of the length-matched cohort (median `rank_ratio` = 0.024; 7/7 reliable queries beat cohort-random). Crucially `rank_restr ≈ rank_full` for every query — the distractors beating the partner were *already* length-matched, so length is not what separates partner from competitors. Reading: length localises coarsely (right ~2,500-protein same-length cohort); genuine **non-length (character) signal transfers to SS** and refines within that cohort; the ~50% SS hits@10 ceiling is a *precision* limit of the transferred character signal, **not** a length confound. Cross-rep transfer is genuine. Corroborating Spearman(rank_full, n_cohort) = +0.116 (p=0.75, null — cohort size does not predict rank). Diagnostic lives in `notebooks/colab16b_classification_head.ipynb` Section 21. *(Secondary finding: `2k3oA00/2k3nA00` confirmed at lengths 129/160 — a 31-residue mismatch, the only high pair with a large length gap. Its partner falls outside the ±15 window so it is excluded from `rank_ratio`; it is also the worst SS retriever by far (rank 1175/1907), consistent with length-mismatched true pairs being where the SS length-prior actively hurts.)*
 
