@@ -7,11 +7,11 @@
 
 ## 0. The one-sentence thesis
 
-> Ohtomo et al. (2025) showed a ReLU network can compute Levenshtein distance *exactly* — but the network is not reusable, not buildable at scale, and not learnable. This thesis drops exactness and instead trains a single encoder that **approximates** edit distance into a reusable Euclidean embedding, then asks two questions a neural edit-distance embedding has not been asked before: does the approximation support **biologically meaningful** protein retrieval, and does one encoder **transfer across symbolic representations** (AA → SS → 3Di) without retraining?
+> Ohtomo et al. (2025) showed a ReLU network can compute Levenshtein distance *exactly* — but that network is rebuilt per input length, costs minutes to construct, and cannot be trained. This thesis drops exactness and poses the algorithm-approximation question instead: can a single encoder *learn* to approximate the Levenshtein algorithm — mapping any symbol string to a reusable Euclidean embedding whose distances preserve the edit-distance ordering well enough to replace the quadratic dynamic program for nearest-neighbour search? And, the part no prior neural edit-distance embedding has tested: does **one trained encoder generalise off its training distribution** — transferring across symbolic representations (AA → SS → 3Di), and from synthetic to natural strings, without retraining — which is what separates a learned *algorithm* (general over any symbol stream) from memorised dataset statistics?
 
-**Primary claim:** AA Levenshtein approximation (function approximation, retrieval-grade).
-**Secondary claim:** cross-representation transfer (partial, genuine — see colab16b §21).
-*Never frame cross-rep as central/headline (see `memory/feedback_claim_hierarchy.md`).*
+**Primary claim — retrieval-grade approximation.** The learned encoder approximates Levenshtein well enough that embedding distance preserves the high-similarity ordering, enabling k-NN retrieval of true high-similarity strings at amortised O(L) encoding + (sub)linear search, in place of the SETH-quadratic DP recomputed per comparison.
+**Secondary claim — off-distribution generalisation.** One encoder transfers across symbolic representations (AA→SS→3Di) and from synthetic→natural without retraining; the transfer is partial and frequency-limited — position-pattern structure carries across alphabets, character-frequency-specific signal does not (colab17b 3Di ceiling).
+*Proteins are an incidental, conveniently-labelled string corpus (CATH access at the institute) — **no biological claim is made**. Never frame cross-rep as central/headline (see `memory/feedback_claim_hierarchy.md`).*
 
 ---
 
@@ -20,8 +20,10 @@
 1. **Origin.** Edit distance is the historical core of biological sequence comparison; computing it is a SETH-hard quadratic DP. Ohtomo et al. (2025) build a ReLU network that *is* the DP, unrolled — exact, but a practical dead end.
 2. **The infeasibility.** That exact network must be rebuilt per input length, costs ~19 min to construct at length 100, and — critically — **cannot even be trained** to learn Levenshtein (stuck in local minima); experiments restricted to a binary alphabet.
 3. **The pivot.** Drop exactness. Train an *encoder* that **approximates** edit distance into a fixed-size, reusable, length-agnostic embedding. Encoding is O(L) once per sequence; retrieval is vector distance.
-4. **The hope — abstraction.** A feature-learning encoder (unlike a hard-wired DP network) may learn the approximation abstractly enough to be *representation-agnostic* — transferring AA → SS → 3Di. This is the cross-representation question.
-5. **The payoff — deployment.** A metric-preserving embedding is exactly the object that powers modern database-scale similarity search (Progres; entropy-scaling search). The thesis sits in that lineage.
+4. **The test — algorithm vs memorisation.** A feature-learning encoder (unlike a hard-wired DP network) might learn the approximation abstractly enough to apply to *any symbol stream*. Running it unretrained on unseen alphabets (AA → SS → 3Di), and on natural strings after synthetic-only training, probes whether it learned the *operation* or merely memorised the training distribution's statistics.
+5. **The payoff — deployment shape.** A metric-preserving embedding is exactly the object that powers database-scale nearest-neighbour search — the same encode-once → index → vector-search pattern as Progres and entropy-scaling search. This thesis produces that object for a *symbolic edit-distance* proxy: a different lane from the structure/homology methods, but the same deployment shape.
+
+**The central tension (developed in §2.5).** The orthodox view holds that networks perform statistical *function* approximation, not symbolic *algorithm* execution, and that the approximation is valid only on the training subdomain. This thesis concedes the no-extraction half — Ohtomo proves the exact Levenshtein network can be built but not *learned* — and turns the generalisation half into its empirical question (beat 4): how far off the training distribution does the approximation actually hold?
 
 ---
 
@@ -58,7 +60,7 @@
   - **A separate model is trained per dataset**, on that dataset's own distribution (disjoint train/query/base splits of the *same* set, fixed alphabet). No artificial→natural transfer, no cross-alphabet transfer.
   - It directly **regresses** edit distance (triplet + approximation loss); this thesis uses band-CE and *studies* the loss design (compression breakthrough, colab16).
   - Its Fig 9b independently confirms 128-d is sufficient (plateau after 32) → cite as external validation of our embedding size.
-- **Honest positioning (do not over-claim):** we are NOT first to embed edit distance, nor first to embed proteins as strings. We ARE addressing the two gaps CNN-ED leaves — biological evaluation and cross-representation transfer.
+- **Honest positioning (do not over-claim):** we are NOT first to embed edit distance, nor first to embed proteins as strings. We ARE addressing the gap CNN-ED leaves — **off-distribution generalisation**: CNN-ED trains one model per dataset and never tests an encoder, unretrained, on a different distribution (a new alphabet, or natural strings after synthetic-only training).
 - **Goes in:** §2 Related Work (the embedding branch — the direct predecessor), §3 Methods (architecture lineage), §5 Discussion (delta).
 
 ### 2.4 Greener & Jamali (2025) — **Progres: deployment-scale sibling**
@@ -71,6 +73,29 @@
   - **Lane caveat:** Progres/Foldseek do *structure* search for remote homology; this thesis does *symbolic edit-distance* search. Progres wins on all-β folds precisely because it lacks primary-sequence info — the hard ceiling of any sequence-order-based method for remote homology. State it, don't hide it.
 - **Goes in:** §2 Related Work (deployment-scale embedding search), §4/§5 (benchmark methodology — single-query vs all-v-all, CPU/GPU), §5 Discussion (SOTA table, the lane distinction).
 
+### 2.5 The NN-and-algorithms landscape — discovery vs approximate-solver vs realization
+
+A recurring confusion ("isn't this just AlphaTensor?") and a recurring objection ("NNs can't learn algorithms") both dissolve once the landscape is split into paradigms. There are four; the thesis occupies exactly one.
+
+| Paradigm | What the NN does | Deployed artifact | Representative work | This thesis? |
+|---|---|---|---|---|
+| Algorithm **discovery** | RL/search policy hunts for a faster **exact** algorithm | extracted, verified code (NN discarded) | AlphaTensor (Fawzi et al., *Nature* 2022); AlphaDev (Mankowitz et al., *Nature* 2023) | **No** |
+| Neural approximate **solver** | learns to approximately solve an expensive exact problem | the **network** | Neural Combinatorial Optimization (Bello et al., 2016) | **closest sibling** |
+| Algorithm **realization** | the network *is* the exact algorithm | the network (if buildable/extractable) | Ohtomo et al. 2025 (constructed ReLU-DP); Neural Turing Machines | **No** (and Ohtomo shows it can't be *learned*) |
+| Learned approximate **function/metric embedding** | approximates the algorithm's *output map* into a reusable embedding | the **encoder** | CNN-ED (2020); NeuroSEED (2021); **this thesis** | **Yes** |
+
+- **AlphaTensor / AlphaDev — the prominent "AI + algorithms" work, but a different paradigm.** The NN is a *search heuristic* (RL + tree search) that *discovers* a new **exact** routine (matrix-multiplication tensor decompositions; sorting networks); the output is verified code and the network is discarded. Cite them to say *what this thesis is not*: we do not discover a faster exact Levenshtein, and the deployed artifact is the learned network, not extracted code.
+- **Neural Combinatorial Optimization (Bello et al. 2016, arXiv:1611.09940) — the paradigm sibling.** A network learns to *approximately* solve an expensive exact problem (TSP), deployed as the network, "close to optimal on 2D Euclidean graphs with up to 100 nodes." Its own central question — "learning on a set of training graphs vs individual test graphs" — is **our off-distribution question in different clothing**: does one trained network generalise across instances/distributions? That is the recognised open question for neural approximate solvers; our cross-alphabet + synthetic→natural transfer is the edit-distance analogue.
+- **Ohtomo (realization) — see §2.1.** The exact ReLU-DP *can be built but not learned*. That negative result is the literature already conceding the first half of the skeptic's objection (below).
+
+**The framing tension (and the thesis's answer).** The orthodox skeptical position — well articulated in a r/MachineLearning discussion, and the standard reading of the universal-approximation literature — has two parts:
+1. *You cannot pull a learned algorithm out of a network and run it as code; NNs do statistical function approximation, not symbolic computation.*
+2. *A real algorithm (e.g. sort) is general over its entire valid domain; a network only approximates over the subdomain it was trained on — "all bets are off elsewhere; it doesn't generalise."*
+
+This thesis **concedes part 1** (and Ohtomo proves it for Levenshtein: learning the exact network fails). No extraction is claimed — the deployable artifact is the encoder, a learned function, not lifted code. Part 2, however, is an **empirical** claim, and it is exactly what the secondary result *measures*: the AA-trained encoder, run unretrained on the SS alphabet it never saw, retrieves at 8/10, and synthetic→natural at 10/10 — generalisation *outside* the training subdomain, explained by position-pattern hashing (an alphabet-independent feature, not memorised AA statistics) and *bounded* by the 3Di frequency-mismatch ceiling. The thesis therefore replaces the skeptic's binary ("algorithms generalise, networks don't") with a **graded, mechanistically-explained measurement** of how far one learned edit-distance approximation reaches. *(Do not over-claim: this is a measured, explained counter-example to the blanket version — not a proof that "NNs generalise.")*
+
+- **Adjacent (methods, not framing): shortcut learning.** The Forward-Forward CNN study (*Sci. Rep.* 2025, s41598-025-26235-2) shows convolutional networks latch onto shortcut solutions unless labels/training are designed to prevent it — external corroboration of this project's own `colab11` collapse onto the generative-procedure feature (see `memory/finding_synthetic_shortcut.md`). Belongs in Methods (training-pair design), not in the motivation.
+
 ### Paper → thesis-section map (quick reference)
 
 | Paper | §1 Intro | §2 Related Work | §3 Methods | §4 Results | §5 Discussion |
@@ -79,16 +104,19 @@
 | Berger/Waterman/Yu 2021 | ● why Levenshtein; duality | ● DP/BLAST history | — | — | ● metric-proxy bigger picture |
 | Dai 2020 (CNN-ED) | — | ● embedding branch (predecessor) | ● architecture lineage | — | ● the delta |
 | Greener/Jamali 2025 (Progres) | — | ● deployment-scale search | — | ● benchmark method | ● SOTA table, lane caveat |
+| AlphaTensor/AlphaDev (discovery) | ● contrast paradigm (the "AI+algorithms" reflex) | ● NN-algorithms landscape (§2.5) | — | — | — |
+| Bello 2016 (NCO) | ● paradigm sibling | ● landscape — approximate solver (§2.5) | — | — | ● generalisation-across-instances analogue |
+| FF shortcut (Sci. Rep. 2025) | — | — | ● training-pair design | — | — |
 
 ---
 
 ## 3. The contribution triad — what is genuinely ours
 
-None of these is "the embedding itself" (CNN-ED already did that). The contribution is:
+None of these is "the embedding itself" (CNN-ED already did that), and none is a biological claim (proteins are an incidental string corpus). The contribution is:
 
-1. **Biological evaluation.** A neural edit-distance embedding evaluated by retrieval of *true CATH protein-family partners*, with biological metrics (AUROC on similarity bands, twilight-zone analysis) — not edit-distance recall.
-2. **Trained-once cross-representation transfer.** A frozen AA-trained encoder run on the SS alphabet (and eventually 3Di) without retraining — and the colab16b §21 length-controlled diagnostic showing the transfer is genuine non-length signal.
-3. **Architectural diagnostics.** The prediction-compression breakthrough (band-weighted MSE → pure CE; within-band ranking preserved geometrically), the position-rigidity diagnosis (the `4oo1I01` outlier → `AdaptiveAvgPool1d` fix), and the length-controlled SS diagnostic.
+1. **Off-distribution generalisation — the genuinely new cell.** A single trained encoder applied *without retraining* to (a) unseen symbolic alphabets (AA → SS → 3Di) and (b) natural strings after training only on synthetic perturbation pairs. This is the algorithm-vs-memorisation probe — a question the per-dataset CNN-ED / NeuroSEED lineage never posed (they train one model per dataset, train ≈ test distribution). The colab16b §21 length-controlled diagnostic shows the cross-alphabet transfer is genuine non-length signal.
+2. **Mechanistic characterisation of what the encoder learned.** *Position-pattern hashing* as the transfer mechanism (same characters in same relative positions → same embedding, regardless of alphabet), and the *alphabet-frequency-mismatch ceiling* (colab17b: position-pattern structure transfers; character-frequency-specific signal does not). I.e. a concrete account of *how much* of the Levenshtein operation the network captured and *where* the approximation leaks.
+3. **Architectural diagnostics.** The prediction-compression breakthrough (band-weighted MSE → pure CE; within-band ranking preserved geometrically), the position-rigidity diagnosis (the `4oo1I01` outlier → `AdaptiveAvgPool1d` fix), and the length-controlled diagnostic.
 
 ---
 
@@ -100,6 +128,8 @@ None of these is "the embedding itself" (CNN-ED already did that). The contribut
 - **Unit-cost vs generalized.** Biologists use substitution-matrix (BLOSUM) costs. Unit-cost is a deliberate, clean starting point for a function-approximation study; generalized cost = future work.
 - **Metric proxy.** A learned Euclidean embedding is an exact metric; biological data is low-fractal-dimension; metric + low fractal dimension → entropy-scaling acceleration (Berger §III). This is the "why it matters."
 - **A BA standing on prior work is normal.** The bar is a competent, well-scoped investigation that characterizes where a known idea works and fails — already cleared by the triad in §3.
+- **Algorithm vs function — be precise.** The thesis approximates the *function* Levenshtein computes (the input→distance map), not the *algorithm* (the DP procedure). No symbolic extraction is claimed; the deployable artifact is the encoder. Use "can an algorithm be approximated by a network?" as the hook, but state the claim as function approximation of the output map.
+- **The "networks don't generalise off the training subdomain" objection (see §2.5).** Concede the no-extraction half (Ohtomo: the exact net can't be learned). Answer the generalisation half empirically and *graded*: cross-alphabet (8/10 SS) + synthetic→natural (10/10), mechanistically bounded by frequency mismatch. Claim a measured, explained counter-example to the blanket version — not "we proved NNs generalise."
 
 ---
 
@@ -130,9 +160,9 @@ Capability ticks, **not** score comparison — lane mismatch otherwise (see §2.
 | Foldseek | 3Di structural alphabet | structural alignment | ✗ | ✗ (needs structure) | ✗ | partial | ✓✓ | ✓ |
 | Progres (Greener 2025) | Cα structure graph | learned (SupCon) | ✗ | ✗ (needs coords) | ✗ (week training) | ✓ (128-d) | ✓✓ | ✓ |
 | CNN-ED (Dai 2020) | any symbols | edit distance (learned) | ✗ | per-dataset model | per-dataset training | ✓ (128-d) | ✓ | — |
-| **This thesis** | **any symbols** | **edit distance (learned)** | ✗ | **✓ (train once)** | **✓ (train once)** | **✓ (128-d)** | **✓ (~7× CPU)** | high-sim only |
+| **This thesis** | **any symbols** | **edit distance (learned)** | ✗ | **✓ (train once)** | **✓ (train once)** | **✓ (128-d)** | **✓ (~7× CPU)** | ✗ (different ground truth) |
 
-**The distinguishing row:** alphabet-agnostic + train-once + indexable embedding + fast — no competitor ticks all four. CNN-ED is the closest but trains a separate model per dataset/alphabet.
+**The distinguishing row:** alphabet-agnostic + train-once + indexable embedding + fast — no competitor ticks all four. CNN-ED is the closest but trains a separate model per dataset/alphabet. The *remote homology* column is shown only to mark the lane boundary: it is a structure/biology capability with a different ground truth, and this thesis makes no homology claim — hence the ✗, not a failure.
 
 ---
 
@@ -140,13 +170,13 @@ Capability ticks, **not** score comparison — lane mismatch otherwise (see §2.
 
 The worry: *CNN-ED already embeds edit distance — what is left?* Layered answer:
 
-1. **CNN-ED answered a different question.** It is a data-mining method evaluated by edit-distance recall, per-dataset trained, fixed alphabet. It never tested biological meaning or cross-representation transfer.
+1. **CNN-ED answered a different question.** It is a data-mining method evaluated by edit-distance recall, per-dataset trained, fixed alphabet. It never tested whether a trained encoder generalises *off* its training distribution — to an unseen alphabet, or to natural strings after synthetic-only training.
 2. **Berger/Waterman/Yu §III is the "why it matters."** Edit distance is valuable because it is a metric; biological data is low-fractal-dimension; a metric-preserving learned proxy is the accelerable object the field wants. Authoritative (Waterman).
-3. **Cross-representation transfer is the genuinely new cell.** Train once on AA, run frozen on SS/3Di. Not done in the CNN-ED or Progres lineages.
+3. **Off-distribution generalisation is the genuinely new cell.** Train once on AA, run frozen on SS / 3Di (and synthetic→natural) — the algorithm-vs-memorisation probe. Not done in the CNN-ED or Progres lineages.
 4. **A BA building on prior work is the assignment, not a flaw.** Contribution = the triad in §3.
 
 **Related-work positioning sentence (drop-in):**
-> "Dai et al. (CNN-ED, 2020) established the technique this thesis builds on — a convolutional encoder mapping strings to a fixed 128-dimensional Euclidean embedding whose distances approximate edit distance. CNN-ED was evaluated as a string-database method, including on the UniRef protein set, but purely as anonymous strings: success is recall of low-edit-distance neighbours, a separate model is trained per dataset, and the alphabet is fixed. It does not ask whether retrieved sequences are biologically related, nor whether one encoder transfers across symbolic representations. This thesis takes the same embedding principle into the bioinformatics setting and addresses exactly those two gaps."
+> "Dai et al. (CNN-ED, 2020) established the technique this thesis builds on — a convolutional encoder mapping strings to a fixed 128-dimensional Euclidean embedding whose distances approximate edit distance. CNN-ED was evaluated as a string-database method, including on the UniRef protein set, but purely as anonymous strings: success is recall of low-edit-distance neighbours. A separate model is trained per dataset, on a fixed alphabet, with train and test drawn from the same distribution; it does not ask whether one trained encoder generalises off that distribution — to an unseen symbolic alphabet, or to natural strings after synthetic-only training. This thesis takes the same embedding principle and addresses exactly that gap, treating the transfer as a probe of whether the network learned the edit-distance *operation* or memorised dataset statistics."
 
 ---
 
@@ -167,7 +197,7 @@ The worry: *CNN-ED already embeds edit distance — what is left?* Layered answe
 2. **Workflow** — the colab16 architecture (encoder → 128-d embedding → distance/head), one figure.
 3. **Results** — AA hits@10 = 10/10, 4oo1I01 rescue, compression breakthrough, cross-rep §21, speed Table 3. Figures from §7.
 4. **SOTA table** — the capability-axed table (§5.2).
-5. **Conclusion / bigger picture** — metric-preserving proxy for billion-sequence search; cross-representation as the open frontier; honest limitations (twilight zone; sequence-order ceiling vs structure methods).
+5. **Conclusion / bigger picture** — metric-preserving proxy for billion-string search; off-distribution generalisation (cross-alphabet + synthetic→natural) as the open frontier and the algorithm-vs-memorisation evidence; honest limitations (approximation degrades in the low/mid-similarity band; alphabet-frequency-mismatch ceiling on transfer; out of the structure/homology lane by construction).
 
 ---
 
@@ -179,3 +209,7 @@ The worry: *CNN-ED already embeds edit distance — what is left?* Layered answe
 - [ ] GPU rerun of the Section 19 wall-clock benchmark (expected ~100× per-query speedup).
 - [ ] Optional: a BLAST/MMseqs2 row backed by a real run, vs a discussion-only treatment.
 - [ ] 3Di cross-rep (Fork C) — blocked on supervisor data fetch.
+- [ ] Confirm exact citations for the §2.5 algorithm-angle papers (AlphaTensor *Nature* 2022 s41586-022-05172-4; AlphaDev *Nature* 2023 s41586-023-06004-9; Bello et al. NCO arXiv:1611.09940; FF shortcut *Sci. Rep.* 2025 s41598-025-26235-2).
+- [ ] Replace the Reddit-discussion reference with primary sources for the skeptic's point (universal-approximation extrapolation caveats; Ohtomo's negative learning result). Do not cite Reddit in the thesis.
+- [ ] More algorithm-angle papers expected from Melissa — fold into §2.5 when they arrive.
+- [ ] Refresh §7 results inventory with colab17a/17b numbers (current §7 still cites colab16b SS 5/10; superseded by the 2×3 matrix).
