@@ -199,6 +199,8 @@ All three K values show a transient loss spike around epoch 19-25 (CE jumps from
 
 ## Reading colab17 + colab17a (the symmetric zero-shot finding + fair-eval correction)
 
+> **⚠ [2026-06-04] Partially superseded — read with "Reading colab17b — powered SS eval" below.** The "SYMMETRIC ZERO-SHOT LEV TRANSFER" headline and the SS in-domain `10/10 = 1.00` number in this section rest on **n = 5** pairs (the top-5 highest-`ss_score` near-duplicates). Powered to the full high-SS set (666 directed queries), SS in-domain retrieval is **8% hits@10**. The text below is kept un-overwritten to preserve the iteration trail; the powered numbers supersede it. AA in-domain (10/10) is unaffected.
+
 **Two notebooks, one combined result.** colab17 (SS-trained encoder, naive HLS vocab) surfaced an eval-set framing error that had been quietly present since colab15: every "SS retrieval" number in this document used the 5 high-**AA** pair list, which for SS-encoded retrieval measures "find AA-partner in SS space" — not SS-Lev approximation. colab17a is the fair-eval re-run: alphabet-matched eval sets, both encoders re-trained, full 2×2 retrieval matrix.
 
 **The fair-eval rule (going forward):** the eval set's "high-sim" partners are defined by `normLev ≥ 0.70` **in the alphabet of the input being encoded** — not by similarity in the encoder's training alphabet, and not by any biological criterion. AA-encoded retrieval uses `aa_score ≥ 0.70` pairs; SS-encoded retrieval uses `ss_score ≥ 0.70` pairs. This rule applies whether the run is in-domain or cross-rep; encoder choice ⊥ eval set choice.
@@ -244,6 +246,8 @@ The deployment-vs-pairwise split should appear explicitly in the findings/conclu
 - Identical retrieval procedure as colab16/17 (10 queries per cell = 5 pairs × 2 directions; pool = 10,117).
 
 ## Reading colab17b (the 2×3 transfer matrix + NN-distance crowding diagnostic)
+
+> **⚠ [2026-06-04] The SS in-domain / cross-rep numbers in this section are n = 5 (capped by `.head(5)`) and are superseded by the powered eval below.** The 3Di findings (crowding refuted; frequency-mismatch reframing) and the head-fragility finding still stand. Kept un-overwritten for the iteration trail.
 
 **Goal.** Extend colab17a's 2×2 matrix to a 2×3 by adding 3Di as a third feed alphabet. Tests whether the alphabet-agnostic position-pattern-hashing mechanism that supports symmetric AA↔SS transfer also covers 3Di — a 20-letter alphabet that *shares all of AA's letters* but uses them with a wildly different frequency distribution (V=23%, D=16%, P=9%; top-3 chars ≈ 47% of all positions vs AA's ~15%).
 
@@ -318,6 +322,121 @@ The 6-panel scatter (`pred L2-sim` vs `true *_score`) shows three reading-worthy
 
 The 3Di-feed column is filled but with only 5/10 and 4/10 hits@10. Phase-2 of Fork C — training a third encoder on **real-3Di-string seeds** — completes the 3×3 transfer matrix and tests the frequency-mismatch reframing. Expected outcome: the 3Di-trained encoder should match or exceed the AA-trained 3Di-feed result on the τ eval set; the 3Di-trained head should generalise on natural 3Di (because train and deployment distributions match, the fix the SS head never got). Design-first grilling required before any notebook code: seed mechanism (whole-string vs windowed slicing of train70 3Di strings), `BAND_LOW_3di` probe (expect ~0.35-0.40 from natural-3Di random-pair stats: mean 0.24, p95 0.365), train70/test30 honoring on the seed pool. See `memory/next_iteration_plan.md`.
 
+## Reading colab17b — powered SS eval (2026-06-04, supersedes the symmetric-transfer headline)
+
+Full write-up in `cross_rep.md`. The earlier SS retrieval cells in this document were all **n = 5** — AA is capped at 5 by nature (only 5 CATH pairs at `aa_score ≥ 0.70`), and SS was capped at 5 *by choice* (`.head(5)`, to match AA) even though **333** high-SS pairs exist. Removing that cap gives the SS number real statistical power.
+
+**Powered retrieval (pool = 10,117; L2 in unit-normalised encoder space; Wilson 95% CI):**
+
+| cell | n_q | @1 | @10 | @50 |
+|---|---|---|---|---|
+| AA in-domain (n=5) | 10 | 90% [60, 98] | **100% [72, 100]** | 100% [72, 100] |
+| **SS in-domain (powered)** | 666 | 3% [2, 5] | **8% [7, 11]** | 17% [14, 20] |
+| AA→SS cross-rep (powered) | 666 | 2% [1, 4] | 6% [5, 9] | 16% [13, 19] |
+
+**Graded by `ss_score` distinctiveness — retrieval only works where SS similarity is near-identical:**
+
+| `ss_score` band | n_q | hits@10 | rate | 95% CI |
+|---|---|---|---|---|
+| [0.70, 0.75) | 350 | 3 | **1%** | [0, 2] |
+| [0.75, 0.80) | 160 | 6 | 4% | [2, 8] |
+| [0.80, 0.90) | 136 | 32 | 24% | [17, 31] |
+| [0.90, 1.0] | 20 | 15 | **75%** | [53, 89] |
+
+Strata sum: (3+6+32+15)/666 = 8.4% ✓ (internally consistent; not a bug). The bulk of high-SS pairs (350/666) sit in [0.70, 0.75) and retrieve at 1%.
+
+**The load-bearing reading (leading interpretation, pending §6):**
+
+1. The capped `9/10 = 90%` SS in-domain headline was driven **entirely** by the 5 highest-`ss_score` near-duplicate pairs. Across the real high-SS distribution, SS in-domain retrieval is **8% hits@10**.
+2. **SS in-domain (8%) ≈ AA→SS cross-rep (6%).** The SS-*trained* encoder is barely better at SS than the encoder that never saw SS → the limiter is **task ill-posedness**, not encoder capacity. In a 3-letter alphabet `ss_score = 0.72` is not distinctive (random SS strings already share a lot), so many pool proteins are ~equally SS-similar to a query; the labelled partner does not stand out until `ss ≥ 0.90`.
+3. This **unifies SS and 3Di under one mechanism** (alphabet-entropy background-similarity floor) and is sharper than "symmetric transfer." AA in-domain (20-letter, `0.70 ≫ 0.15` background) stays at 100% — the partner is unique and retrievable.
+
+**Confirmatory diagnostic (`cross_rep.md` §6) — RUN 2026-06-05, ill-posedness CONFIRMED.** Computed each partner's rank in **exact ground-truth SS-Levenshtein space** (brute-force, no encoder) — the ceiling any model could reach. Result:
+
+| `ss` band | n_q | encoder @10 | exact-oracle @10 | median competitors |
+|---|---|---|---|---|
+| [0.70,0.75) | 350 | 1% | **9%** | **340** |
+| [0.75,0.80) | 160 | 4% | 29% | 106 |
+| [0.80,0.90) | 136 | 24% | 46% | 24 |
+| [0.90,1.0] | 20 | 75% | 85% | 0 |
+| AA high (≥0.70) | 10 | 100% | 100% | 0 |
+
+A *perfect* oracle reaches only 9% hits@10 at `ss≈0.70` — the median query has ~340 pool proteins tie-or-more SS-similar than its partner → the task is genuinely ill-posed. High-AA partners rank exactly 1 in exact space (0 competitors) → AA is well-posed. The AA/SS gap is a property of the **task** (alphabet entropy), not the encoder; the encoder tracks the oracle ceiling, graded identically. **Settles the CE-more-bins question for SS:** finer within-band bins cannot manufacture a ranking the ground truth doesn't contain (the oracle itself caps at 9%) — more bins is not the lever for SS.
+
+## Baseline rationale — why ESM2 (not BLAST), and what the comparison isolates
+
+**Why ESM2.** The baseline must fit our deployment shape — *string → fixed vector → k-NN* — so it has to be an **embedding model**. ESM2 (Lin et al. 2022, Meta AI) is a transformer **protein language model** trained by masked-LM on ~tens of millions of UniRef sequences for a **biological** objective (no edit-distance or structure labels; structure/function *emerge*). We mean-pool its per-residue outputs → one vector per protein (35M variant, ~480-d; conservative — larger only helps it on AA). It is the **data-dependent foil**: the strongest available example of *"lots of data, wrong objective,"* which is exactly what the abstraction-vs-memorisation / data-value question needs. ESM2 encodes **biological** similarity, not string/edit similarity — that mismatch is the point.
+
+**Why not BLAST.** BLAST answers a *different question with a different ground truth*: heuristic **local-alignment** search for biological **homology** (substitution-matrix scored), not unit-cost global Levenshtein. It is **not an embedding** (seed-and-extend alignment, no fixed vector), so it cannot slot into the encode→index→search shape this thesis is about. BLAST is a **landmark in the design space**, not a head-to-head baseline. Three points on that axis: *exact & expensive* (Levenshtein/Needleman–Wunsch), *heuristic & fast & biological* (BLAST), *learned embedding* (ours, approximating exact global Levenshtein as k-NN). We benchmark against edit-distance methods + a pretrained-embedding foil; BLAST/Foldseek answer homology, a different lane (see [[feedback-algorithm-approximation-lane]]).
+
+**Why a trivial linear/logistic head (linear probing).** We *freeze* each embedding and add the simplest possible readout — **linear** regression (Ridge) for continuous `normLev` (Pearson/MAE), **logistic** regression for is-high (AUROC). Both are *multiple*-predictor (the input is the many-dim `|e_a−e_b|`). A linear head measures how **directly accessible** the edit-distance signal is in the representation; a deep head could dig out buried signal and *mask* embedding-quality differences. Putting the **same** trivial head on both embeddings means any gap is an **embedding-quality** difference, not head complexity.
+
+**What the design isolates (and what we found).** Two ways to make the vector × two usages × two metric families:
+- **embedding** (SNN tiny/right-objective vs ESM2 huge/wrong-objective) → the data-value question.
+- **free vs +head** → is edit-distance *already in the geometry* (free), or *latent, needing a readout* (+head)? Found: ESM2 latent (3Di free r 0.31 → head 0.69), SNN aligned in geometry (free ≈ head).
+- **pairwise vs retrieval** → "tell high-sim pairs apart" (AUROC) vs "find the true partner in 10k" (the real deployment task). Found: SNN wins pairwise; ESM2 ties/edges at retrieval. So the SNN's case is **efficiency (227×) + zero-shot + pure edit-distance proxy**, not retrieval superiority.
+
+## Reading colab18 — pretrained-embedding (ESM2) baseline vs SNN (2026-06-09)
+
+First **runnable baseline** on the project (prior peer mentions of CNN-ED/NeuroSEED/CGK were conceptual only). Answers the supervision ask *"must beat a simple solution — pretrained embeddings + logistic regression on Levenshtein"* and operationalises the **data-agnosticism / abstraction-vs-memorisation** question (*what value does seeing lots of data for the wrong objective generate?*).
+
+**ESM2 is the data-dependent foil, not a competitor.** It encodes *biological* similarity (masked-LM on ~tens of millions of UniRef sequences), not string/edit similarity. The benchmark measures **how far each representation's edit-distance tracking survives off its home modality** (AA → SS → 3Di).
+
+**Setup.** `notebooks/colab18_esm2_baseline.ipynb`. ESM2-t12-35M (frozen, mean-pooled), same 10,117 pool + frozen `cath_eval` (4,950 pairs) + same metrics. Clean **2×2 {SNN, ESM2} × {free, +head}**:
+- **free** — zero-shot geometry: SNN `sim=1−‖e_a−e_b‖/2`; ESM2 raw cosine. Neither sees a natural pair.
+- **+head** — frozen embedding + Ridge/Logistic on `|e_a−e_b|`, **component-grouped 5-fold CV** (union-find on the pair graph → no protein shared across folds; 942 components). This isolates **embedding quality** from **readout supervision**. ESM2+head = the **target-supervised upper-control baseline** the supervisor asked for; SNN+head = its matched control. *(An earlier pass used ordinary pair-KFold, which leaked protein identity and inflated the heads — corrected here; the free columns were never affected.)*
+- Local reproduction, SNN validated against documented (AA free Pearson 0.398 ≈ colab16's 0.396; SS 0.815 ≈ 0.831). **Param ratio: SNN 149,635 vs ESM2-35M 33,992,881 = 227×.**
+
+**Pearson r vs true `*_score` (grouped CV; calibrated continuous tracking):**
+
+| modality | n_high | SNN free | SNN+head | ESM2 free | ESM2+head |
+|---|---|---|---|---|---|
+| AA | 5 | **0.398** | 0.144 | 0.198 | 0.123 |
+| SS | 333 | 0.815 | **0.876** | 0.752 | 0.810 |
+| 3Di | 38 | 0.641 | 0.645 | 0.306 | **0.691** |
+
+**AUROC is-high (grouped CV; *pairwise high-sim discrimination* proxy — NOT proof of full-pool retrieval; cf. §6):**
+
+| modality | SNN free | SNN+head | ESM2 free | ESM2+head |
+|---|---|---|---|---|
+| AA | **0.999** | **0.999** | 0.994 | 0.991 |
+| SS | 0.947 | **0.953** | 0.846 | 0.881 |
+| 3Di | 0.988 | **0.984** | 0.863 | 0.945 |
+
+**Reading (leak-free):**
+
+1. **Zero-shot (free vs free): the SNN beats ESM2 on every metric, every modality** — widest at **3Di Pearson 0.641 vs 0.306 (2×)**; AUROC SS 0.947 vs 0.846, 3Di 0.988 vs 0.863. No CV, no leakage → this is the robust headline. **The SNN's untrained-on-target geometry tracks edit-distance better than a generic protein LM's. Data-agnosticism premium, measured.**
+2. **Matched readout (both +head, grouped CV) — the clean embedding-quality test:** on **discrimination (AUROC)** the SNN embedding wins everywhere (SS 0.953 vs 0.881; 3Di 0.984 vs 0.945; AA tie). On **calibrated Pearson** the SNN wins SS (0.876 vs 0.810) but **ESM2 edges 3Di (0.691 vs 0.645)**. So at equal supervision the SNN embedding is the better substrate for *ranking*; ESM2 is marginally better for *calibrated 3Di regression*.
+3. **The mechanistic nugget — "usable but not directly aligned," made precise.** ESM2's 3Di edit-signal is **latent**: free r=0.306 → a supervised head surfaces it to 0.691 (+0.39). The SNN's is **already aligned in its geometry**: free 0.641 ≈ head 0.645 (head adds nothing). Pretrained biology *contains* 3Di edit-distance information but you must train a readout to extract it; the SNN exposes it directly in distance.
+4. **ESM2 is a *strong* baseline, not a broken one.** No off-modality collapse on SS (free r=0.752) — in a 3-letter alphabet edit-distance ≈ length+composition, captured even reading "HLS" as nonsense His/Leu/Ser. The free contrast sharpens on higher-entropy 3Di (0.306). Ties to §6 entropy + colab16b length-vs-character.
+5. **The pair-CV leak was real:** ESM2+head Pearson AA 0.489→**0.123**, SS 0.850→**0.810**, 3Di 0.800→**0.691** under grouped CV. The original `+head` numbers were optimistic, as flagged in review.
+
+**Caveats to disclose:** **AA Pearson is uninformative** (n_high=5, labels bunched in [0.05,0.30]; both heads collapse under grouped CV — read AA on AUROC only, where all ~tie & underpowered). ESM2-35M is conservative — a larger ESM2 lifts ESM2 *on AA*, stays generic off-modality (swap line in notebook). **AUROC is a pairwise discrimination proxy, not full-pool retrieval** — hits@k (full-pool ESM2 embeddings) is deferred and required before any deployment-retrieval claim. **Scope = phase-one AA/SS/3Di only; plain English (the 4th supervision axis) is not yet covered.** SNN MAE stays high (it is a banded ranker, not a calibrated regressor) — see Pearson/calibration split.
+
+**Net (thesis-safe reading):** the SNN's **zero-shot edit-distance geometry beats raw ESM2 geometry across AA, SS, and 3Di** (robust, no leakage). At **matched supervised readout** (grouped CV) the SNN embedding still wins **discrimination** everywhere; ESM2 edges only **calibrated 3Di regression**. Pretrained biological embeddings hold **usable-but-not-aligned** edit-distance information (a head is needed to surface it, especially for 3Di), whereas the SNN exposes it directly — at **227× fewer parameters** and zero natural-pair supervision. Remaining fair tests: full-pool retrieval before any deployment claim, and English. A genuinely useful baseline — **not a clean sweep, but the leak-free story is the stronger one** (SNN wins free everywhere *and* wins matched-readout discrimination). **⚠ This is the *pairwise* picture — see "Reading colab18 — retrieval form" below: the discrimination advantage does NOT carry to full-pool k-NN retrieval, where ESM2-free ties/edges the SNN. The deployment case rests on efficiency + zero-shot, not retrieval superiority.**
+
+## Reading colab18 — retrieval form (full-pool k-NN, 2026-06-09)
+
+Closes the baseline loop in **deployment form**: the colab18 pairwise comparison (AUROC/Pearson) is not the thesis's k-NN claim. Here both **free** embeddings are used as a k-NN index over the **full 10,117 pool**, scored as hits@k with co-partner masking + Wilson CIs (same protocol as `cross_rep.md`), against the **exact-oracle ceiling** (brute-force Levenshtein — the §6 lens). Eval sets: AA (5 high-AA pairs, 10 queries), SS (**powered** 333 pairs, 666 queries), 3Di (**powered** 38 pairs, 76 queries). Retrieval uses **free** scores only (SNN L2, ESM2 cosine) — the head is a pairwise classifier, not a retrieval index.
+
+**hits@10 [Wilson 95% CI]:**
+
+| modality | n_q | SNN-free | ESM2-free | exact-oracle (ceiling) |
+|---|---|---|---|---|
+| AA | 10 | 90% [60,98] | 100% [72,100] | 100% [72,100] |
+| SS (powered) | 666 | 6% [4,8] | 7% [5,9] | 24% [21,28] |
+| 3Di (powered) | 76 | 20% [12,30] | 24% [16,34] | 33% [23,44] |
+
+**hits@50:** AA 100/100/100; SS 13% / 19% / 34%; 3Di 58% / 62% / 79%.
+
+**Reading (honest — this is *not* a retrieval win for the SNN):**
+
+1. **AA (well-posed): both saturate the oracle.** SNN 9/10, ESM2 10/10, oracle 10/10 — a **statistical tie** (n=10, CIs overlap). *(This local retrain got 9/10; the committed model's documented headline is 10/10 — the length-mismatched `2k3oA00` pair is run-to-run variance.)* On the deployment task the pretrained LM and our zero-shot encoder are **comparable**; the SNN's edge is **227× fewer params + no biological pretraining**, not better retrieval.
+2. **SS & 3Di (ill-posed, §6): everyone far below 100%, bounded by a low oracle ceiling** (SS 24%, 3Di 33% @10). The oracle row proves the limiter is the **task**, not the model — and ESM2 does not rescue it.
+3. **ESM2-free is modestly but *consistently* ahead of SNN-free across all three modalities** (clearest at @50: SS 19% vs 13%, 3Di 62% vs 58%). **The SNN's pairwise-AUROC advantage (colab18) does NOT carry to full-pool retrieval** — separating high-sim from random pairs (AUROC) ≠ ranking the true partner above 10k distractors (retrieval).
+
+**Net (thesis-safe):** In deployment retrieval form the SNN **ties ESM2 on AA and is marginally behind on SS/3Di** — it does **not** beat the baseline at retrieval. Defensible claims: the SNN is a *viable* fast retrieval proxy (AA works); it **matches a 227×-larger pretrained LM at retrieval while being zero-shot and a pure edit-distance approximator**; it wins on **pairwise discrimination + efficiency**. **Do not claim a retrieval win.** Both models are far below 100% on SS/3Di because the ≥0.70 bar is ill-posed in low-entropy alphabets (§6), not because either model failed. *(Caveat: ESM2-35M is conservative; a larger ESM2 would likely widen its retrieval lead, strengthening — not weakening — the "do not claim a retrieval win" conclusion.)*
+
 ## Reading the trend (colab10 → colab16)
 
 **AA in-representation retrieval trajectory:** 0% (colab14, mis-targeted eval band) → 60% (colab15, natural high pairs in pool of 10K) → **100% (colab16 K=16, same pool, classification head + AdaptiveAvgPool)**. The colab14 → colab15 jump was a methodology fix (eval at the right band). The colab15 → colab16 jump is the real architectural improvement: position-rigidity fix + bin classification → tight spatial clusters in embedding space.
@@ -354,7 +473,7 @@ The 3Di-feed column is filled but with only 5/10 and 4/10 hits@10. Phase-2 of Fo
 4. **Natural high-AA pairs are extremely scarce** — only 6 pairs in the entire CATH dataset at aa_score ≥ 0.70 (4 strictly valid + 1 rescued at lengths 34/43 + 1 unrecoverable at lengths 291/354). All AA-high statistics are based on n=5. AUROC and MAE numbers on this band are real but underpowered; bootstrap CIs would be appropriate for thesis-defense reporting.
 5. ✅ ~~Prediction compression toward 0.5~~ — **resolved in colab16** by replacing band-weighted MSE with plain cross-entropy over 3 bins. Predictions now live on three discrete bands (~0.55 / ~0.68 / ~0.80 in L2-derived sim) instead of one centre cluster. Within-band ranking is preserved by the encoder's continuous geometry, even though CE never supervised it directly.
 6. ✅ ~~4oo1I01 ↔ 4ifdI01 retrieval outlier~~ — **resolved in colab16** by AdaptiveAvgPool. Root cause was Flatten+Linear position-rigidity (a 4-character N-terminal insert shifts every downstream feature into different FC slots — pos_match between the two sequences was only 1.3%). Diagnostic captured in `memory/architecture_insights.md`. After AdaptiveAvgPool1d(K=8 or K=16) absorbs the shift inside one bucket, this pair retrieves at rank 1/1 in both directions.
-7. ✅ ~~SS cross-rep transfer ceiling~~ — **resolved in colab17a (2026-05-21)**, **softened in colab17b (2026-05-27)**. The "SS retrieval ceiling" of 0.20 → 0.50 across colab15/16 was an **eval-set artifact**: all those numbers used the 5 high-**AA** pair list to measure SS-encoded retrieval, which is "find AA-partner in SS space" — not SS-Lev approximation. With the correct alphabet-matched eval set (top-5 by `ss_score`), SS in-domain hits@10 = **1.00** (10/10) under L2 retrieval. The full 2×2 matrix is symmetric: both diagonals 10/10, both cross-rep off-diagonals 8/10. Cross-rep transfer is genuinely zero-shot and direction-symmetric *in expectation*. **colab17b update:** re-training the same encoders for the 2×3 run produced asymmetric off-diagonals (8/10 AA→SS but 6/10 SS→AA) — cross-rep is symmetric in expectation but carries non-trivial training-stochasticity variance. Writeup framing should hedge "symmetric" with "with run-to-run variance." Head-fragility limitation from colab17a stands and extends to 3Di feeds — SS-trained head `E[bin_mid]` is 0/10 on both natural SS *and* natural 3Di. See "Reading colab17b" section above.
+7. ✅ ~~SS cross-rep transfer ceiling~~ — **resolved in colab17a (2026-05-21)**, **softened in colab17b (2026-05-27)**. The "SS retrieval ceiling" of 0.20 → 0.50 across colab15/16 was an **eval-set artifact**: all those numbers used the 5 high-**AA** pair list to measure SS-encoded retrieval, which is "find AA-partner in SS space" — not SS-Lev approximation. With the correct alphabet-matched eval set (top-5 by `ss_score`), SS in-domain hits@10 = **1.00** (10/10) under L2 retrieval. The full 2×2 matrix is symmetric: both diagonals 10/10, both cross-rep off-diagonals 8/10. Cross-rep transfer is genuinely zero-shot and direction-symmetric *in expectation*. **colab17b update:** re-training the same encoders for the 2×3 run produced asymmetric off-diagonals (8/10 AA→SS but 6/10 SS→AA) — cross-rep is symmetric in expectation but carries non-trivial training-stochasticity variance. Writeup framing should hedge "symmetric" with "with run-to-run variance." Head-fragility limitation from colab17a stands and extends to 3Di feeds — SS-trained head `E[bin_mid]` is 0/10 on both natural SS *and* natural 3Di. See "Reading colab17b" section above. **[2026-06-04] RE-OPENED by powered eval:** the entire "symmetric zero-shot transfer" claim above was an **n=5 top-`ss_score` artifact**. Powered to 666 directed SS queries, SS in-domain retrieval is **8% hits@10** and ≈ AA→SS cross-rep (6%) — so the SS-trained encoder is barely better than the encoder that never saw SS. Revised reading: SS-Lev at the `≥0.70` bar is an **ill-posed retrieval task** in a 3-letter alphabet (entropy floor), not a transfer success. Retrieval works only at `ss ≥ 0.90` (75%). See "Reading colab17b — powered SS eval" and `cross_rep.md`. Pending §6 tie-count confirmation.
 8. ✅ ~~Wall-clock benchmark is missing~~ — **measured 2026-05-14 on CPU.** Lev 38.0 ± 19.6 ms vs NN 5.4 ± 5.1 ms per query at pool=10K → **~7× CPU speedup** (see Table 3). GPU rerun pending; expected 50-200× since NN forward drops to <1 ms while rapidfuzz Lev gets no GPU acceleration.
 9. ✅ ~~Length vs character-statistics in SS cross-rep transfer~~ — **resolved in colab16b (2026-05-15)** by the Section 21 length-controlled SS retrieval diagnostic. **The hypothesis "SS retrieval ~50% is mostly length-matching" is REFUTED.** Restricting the SS pool to proteins within ±15 residues of the query, the true partner still ranks in the **top ~2.4%** of the length-matched cohort (median `rank_ratio` = 0.024; 7/7 reliable queries beat cohort-random). Crucially `rank_restr ≈ rank_full` for every query — the distractors beating the partner were *already* length-matched, so length is not what separates partner from competitors. Reading: length localises coarsely (right ~2,500-protein same-length cohort); genuine **non-length (character) signal transfers to SS** and refines within that cohort; the ~50% SS hits@10 ceiling is a *precision* limit of the transferred character signal, **not** a length confound. Cross-rep transfer is genuine. Corroborating Spearman(rank_full, n_cohort) = +0.116 (p=0.75, null — cohort size does not predict rank). Diagnostic lives in `notebooks/colab16b_classification_head.ipynb` Section 21. *(Secondary finding: `2k3oA00/2k3nA00` confirmed at lengths 129/160 — a 31-residue mismatch, the only high pair with a large length gap. Its partner falls outside the ±15 window so it is excluded from `rank_ratio`; it is also the worst SS retriever by far (rank 1175/1907), consistent with length-mismatched true pairs being where the SS length-prior actively hurts.)*
 10. **3Di cross-rep transfer is partial — alphabet-frequency mismatch (NEW colab17b).** Both AA-trained and SS-trained encoders transfer to 3Di-feed at hits@10 = 5/10 and 4/10 respectively (L2; pool=10,117). Partner remains in top 0.5% (@50 = 8/10 and 10/10) but does not reach top-10 reliably. Crowding hypothesis tested directly (NN-distance diagnostic, colab17b cell 38) and **refuted** — the 3Di-feed manifold is not denser than AA-feed (median NN distances 0.57 / 0.67 vs AA-feed 0.65 / 0.82). Reframed mechanism: position-pattern-hashing noise floor is elevated for 3Di because V/D/P dominate 47% of positions, causing accidental position-matches between unrelated 3Di proteins to come uncomfortably close to the partner signal. Predicts that a 3Di-trained encoder (V/D/P embedding rows trained on 3Di-token statistics, not Val/Asp/Pro statistics) should pull the 3Di diagonal toward AA/SS diagonal levels. Test = colab17c.
@@ -369,7 +488,8 @@ The 3Di-feed column is filled but with only 5/10 and 4/10 hits@10. Phase-2 of Fo
 - ✅ ~~Bidirectional cross-rep (SS-train → AA-eval)~~ — **done in colab17/17a.** Symmetric in expectation (8/10 each direction in colab17a) with run-to-run variance (8/10 vs 6/10 in colab17b).
 - **3Di cross-rep — phase 1 done (colab17b), phase 2 = colab17c.** Phase 1: AA-trained and SS-trained encoders zero-shot to 3Di-feed at 5/10 and 4/10 hits@10 respectively. Phase 2: train a third encoder on real 3Di strings to complete a full 3×3 matrix and test the alphabet-frequency-mismatch reframing.
 - **English / natural-language cross-rep (Fork D)** — parked, "for last." Feed English text into protein-trained encoder. Wrinkle: 20 of 26 English letters overlap with AA alphabet; missing B/J/O/U/X/Z would need restriction or remap. After the 3×3 lands.
-- **Pre-trained protein LM (ESM2 / ProtT5) as encoder or comparison baseline** — noted as future work, outside current thesis scope. Two framings:
+- ✅ ~~**Pre-trained protein LM (ESM2 / ProtT5) as comparison baseline**~~ — **DONE in colab18 (2026-06-09), grouped-CV corrected.** Clean 2×2 {SNN,ESM2}×{free,+head}, component-grouped CV. SNN beats ESM2-**free** everywhere (zero-shot); at matched supervised readout the SNN embedding still wins **discrimination** (AUROC) everywhere, ESM2 edges only **calibrated 3Di regression** (Pearson 0.691 vs 0.645). 227× fewer params. See "Reading colab18". **Retrieval form (full-pool k-NN) also done — ESM2-free ties/edges SNN-free (AA tie at oracle; SS/3Di ESM2 marginally ahead, both ceiling-bounded); NOT a SNN retrieval win.** See "Reading colab18 — retrieval form". *Remaining:* English modality, ESM2-as-encoder-replacement framing (below).
+- **Pre-trained protein LM (ESM2 / ProtT5) as encoder replacement** — noted as future work, outside current thesis scope. Two framings:
   - *As encoder replacement:* changes the thesis question — pLMs capture biological/evolutionary similarity, not Levenshtein. Would also kill the computational-efficiency motivation (ESM2-650M is ~650× larger than current encoder; even ESM2-35M is heavy).
   - *As comparison baseline:* one k-NN retrieval run on `cath_eval.csv.gz`, paragraph in discussion section, preempts the "why not just use ESM?" examiner question. ProtT5 is already in the repo as a baseline-only resource (see memory `data_sources.md`). Lower lift, higher defensibility return.
   - Discussion-section framing: "extending to a pre-trained pLM backbone could improve cross-representation transfer at the cost of computational efficiency — left as future work."
