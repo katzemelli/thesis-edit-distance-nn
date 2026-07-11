@@ -3,6 +3,7 @@ __pycache__/
 *.pyc
 .ipynb_checkpoints/
 bench_cache/
+prompts/
 /outputs/
 /tmp/
 node_modules/

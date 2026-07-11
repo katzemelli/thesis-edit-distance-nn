@@ -437,6 +437,16 @@ Closes the baseline loop in **deployment form**: the colab18 pairwise comparison
 
 **Net (thesis-safe):** In deployment retrieval form the SNN **ties ESM2 on AA and is marginally behind on SS/3Di** — it does **not** beat the baseline at retrieval. Defensible claims: the SNN is a *viable* fast retrieval proxy (AA works); it **matches a 227×-larger pretrained LM at retrieval while being zero-shot and a pure edit-distance approximator**; it wins on **pairwise discrimination + efficiency**. **Do not claim a retrieval win.** Both models are far below 100% on SS/3Di because the ≥0.70 bar is ill-posed in low-entropy alphabets (§6), not because either model failed. *(Caveat: ESM2-35M is conservative; a larger ESM2 would likely widen its retrieval lead, strengthening — not weakening — the "do not claim a retrieval win" conclusion.)*
 
+**UPDATE 2026-07-11 (colab29 unified harness — set-based, de-hubbed oracle):** the "do not claim a
+retrieval win" verdict above is specific to the **single-designated-partner** metric and still stands for
+it. Under the **set-based exact-Levenshtein oracle** (relevance = *all* pool neighbours ≥ threshold; the
+deployment-relevant "find the high-sim neighbourhood" metric), the SNN **beats ESM2 on SS/3Di**: MAP@10
+@0.70 SS 0.44 vs 0.22, 3Di 0.47 vs 0.28; @0.90 SS 0.55 vs 0.22, 3Di 0.69 vs 0.26 (SNN dominant,
+non-overlapping CIs). This is metric-dependence, not a contradiction (cf. colab18 set-based finding). The
+midterm deck therefore: reports **AA as hit@10** (pair-like control, median|T|=1 — even trigram/Dice hit
+1.0) and **SS/3Di as set-based MAP@10**, and states "set-based" every time. On the *primary* metrics the
+SNN also leads on SS/3Di: Spearman 0.94/0.91 (vs ESM2 0.88/0.68) and AUROC 0.98/0.995 (vs 0.87/0.67).
+
 ## Reading the trend (colab10 → colab16)
 
 **AA in-representation retrieval trajectory:** 0% (colab14, mis-targeted eval band) → 60% (colab15, natural high pairs in pool of 10K) → **100% (colab16 K=16, same pool, classification head + AdaptiveAvgPool)**. The colab14 → colab15 jump was a methodology fix (eval at the right band). The colab15 → colab16 jump is the real architectural improvement: position-rigidity fix + bin classification → tight spatial clusters in embedding space.
