@@ -75,7 +75,7 @@ on **SS/3Di**. AA full-range fidelity is shown on **synthetic** (colab30 ladder:
 
 ## What is honest-labelled WIP / outlook (say so on the slide)
 - ProtTrans/ProtT5 row in the centerpiece table (ESM2 is the live PLM baseline).
-- N-ablation plateau curve.
+- **Compute-controlled** N-ablation (hold gradient steps fixed while varying N, to disentangle data from steps). *The plain N-ablation is **DONE** — slide 11b; frame as diminishing-returns / compute sweet-spot, **never** "plateau."*
 - Reverse example, natural-language modality, SS-vs-AA entropy quantification.
 - BLAST bridge row / natural-distribution Spearman sensitivity (appendix).
 
