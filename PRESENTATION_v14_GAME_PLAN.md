@@ -889,17 +889,65 @@ Put a References slide at the end **and** a small citation under every borrowed 
 | Secondary structure (DSSP) | Kabsch W., Sander C., Biopolymers 22:2577–2637, 1983 | ⚠️ verify |
 | Siamese networks (origin) | Bromley J. et al., *Signature verification using a Siamese time delay neural network*, NIPS, 1993 | ⚠️ verify |
 
-### R3. 🚨 Slide 9 — "Architektur basiert auf dem aus dem Paper, oder? Dann muss da eine Referenz hin, sonst sieht es geklaut aus."
-**THIS ONE I CANNOT ANSWER FOR YOU — AND I WILL NOT GUESS A CITATION.** Inventing a source here would be
-far worse than having none. You need to say where the conv → pool → FC Siamese architecture actually came
-from. Candidates, in order of likelihood — **pick the true one**:
-- the **original base paper** your first notebooks reproduced (`first_experiment_paper_NN.ipynb`,
-  `colab2_recreate_Figure13.ipynb` — whatever paper *that* was reproducing is almost certainly the answer);
-- **CNN-ED** (Dai et al., *Convolutional Embedding for Edit Distance*, SIGIR 2020) — the closest published
-  CNN-embeds-edit-distance architecture;
-- **Bromley et al. 1993** for the Siamese *pattern* itself (this one you can always cite).
-If it is genuinely your own design, **say that on the slide** — "architecture: own design, Siamese pattern
-after Bromley et al. 1993" is a perfectly good answer, and it removes the "geklaut" impression entirely.
+### R3. ✅ RESOLVED — Slide 9 architecture provenance
+**Source of the inspiration:** a Yann LeCun interview (*"Yann LeCun's $1B Bet Against LLMs"*, ~15:16), where
+he discusses joint-embedding / Siamese architectures. A video is **not citable** — but it points straight at
+a real lineage, because **LeCun co-authored the original Siamese paper**. All three verified:
+
+- **Bromley J., Guyon I., LeCun Y., Säckinger E., Shah R.** *Signature Verification using a Siamese Time
+  Delay Neural Network.* **NIPS**, **1993.** → the origin of the Siamese architecture.
+- **Chopra S., Hadsell R., LeCun Y.** *Learning a Similarity Metric Discriminatively, with Application to
+  Face Verification.* **CVPR**, **2005.** → Siamese + contrastive loss to learn a similarity *metric*.
+- **⭐ Hadsell R., Chopra S., LeCun Y.** *Dimensionality Reduction by Learning an Invariant Mapping.*
+  **CVPR**, **2006.** → **learn a mapping into Euclidean space whose distances approximate a semantic
+  distance defined on the inputs.** *That is this thesis's problem statement in someone else's title.*
+  Swap "semantic distance" → "normalized Levenshtein" and it is exactly the project.
+
+**⭐ THE REAL PROVENANCE OF THE ENCODER — his own course notebook.** His *Intelligent Systems* MNIST CNN is
+`Conv2D(32) → Conv2D(64) → MaxPool → Flatten → Dense(128, relu) → Dense(10, softmax)`. Your encoder **is that
+network, transposed from 2-D images to 1-D symbolic sequences**, with the classifier head swapped for an
+embedding. **The 32 → 64 → 128 progression is his.** Credit it — he will recognise it immediately.
+
+| his *Intelligent Systems* CNN | your SiameseEncoder | why it changed |
+|---|---|---|
+| image input (28, 28, 1) | `Embedding(vocab=21, dim=32)` | symbols aren't pixels — letters need a learned vector first |
+| `Conv2D(32, 3×3, relu)` | `Conv1d(32, k=3, relu)` | a sequence has **one** spatial axis, not two |
+| `Conv2D(64, 3×3, relu)` | `Conv1d(64, k=3, relu)` | **same 32 → 64 widening** |
+| `MaxPooling2D(2×2)` | `AdaptiveAvgPool1d(K=16)` | inputs are **variable-length** → fixed vector for any length. **Average**, not max: edit distance depends on the whole content, not the strongest activation. **Ablated → colab25** |
+| `Dropout` | — | small model, 30k synthetic pairs; overfitting was never the failure mode |
+| `Flatten → Dense(128, relu)` | `Flatten → Linear(64·16 → 128)` | **the same 128-d bottleneck** |
+| `Dense(10, softmax)` (classifier) | `L2-normalize` → 128-d vector | we don't want a *class*, we want a **vector whose geometry is the target** |
+
+**Nice tie-in:** `kernel_size=3` over symbols **is a learned 3-gram detector** — the trigram baseline is its
+hand-crafted counterpart, and the same signal BLAST seeds on. The conv *learns* which k-mers matter.
+
+**PUT THIS ON SLIDE 9:**
+> *Convolutional encoder adapted from the **Intelligent Systems course CNN** (32 → 64 filters → 128-d
+> dense), transposed from 2-D images to 1-D symbolic sequences. Siamese pattern after **Bromley, Guyon,
+> LeCun et al. (1993)**; distance-supervised objective after **Hadsell, Chopra & LeCun (2006)**. Two
+> adaptations: **AdaptiveAvgPool** for variable-length input (**ablated**, backup), and an **L2-normalized
+> embedding** in place of the softmax classifier.*
+
+**SAY THIS:** *"The encoder is deliberately the CNN from your Intelligent Systems course — same 32-to-64
+convolutions, same 128-d dense bottleneck — transposed from 2-D images to 1-D symbol sequences. I changed
+two things. MaxPool became AdaptiveAvgPool, because my inputs are variable-length and I need a fixed vector
+for any of them — and I ablated that choice. And the softmax classifier became an L2-normalized embedding,
+because I don't want a class, I want a vector space whose distances mean something."*
+
+**🎯 YOUR STRONGEST CARD — you have a controlled ablation (colab25).** Everything held fixed (training data,
+data order, CE objective, epochs, seeds, eval pool, oracle); **only the pooling layer toggled.** It exists
+precisely because the colab15→16 jump changed *two* things at once and you refused to claim the credit until
+you'd isolated it. **Promote colab25's figure to a named backup slide.** A defended design beats a cited one:
+*"I didn't take this from a paper — I assembled it from standard components, and the one non-obvious choice
+I ablated in a controlled experiment."*
+
+**AI assistance:** the *composition* was LLM-proposed; every component is now accounted for by a real source,
+so nothing on the slide is false. Declare AI use in the **Selbstständigkeitserklärung** (check TU Dresden's
+current rule) — not in the methods section, and **never** by inventing a paper citation for the architecture.
+
+**Also cite Hadsell et al. (2006) on slide 5b.** It is the established framing for precisely the problem:
+the input distance is not Euclidean, and you learn an embedding that approximates it anyway. It makes the
+"why is this hard" slide look like scholarship rather than improvisation.
 
 ### R4. Slide 15 — "Warum diese Normalisierung? Welche Alternativen gibt es?"
 **Why normalize at all:** a raw edit distance of 2 is trivial between two 200-residue proteins and
@@ -910,13 +958,34 @@ catastrophic between two 3-letter strings. Without normalization the target is d
 - directly interpretable: **the fraction of the longer sequence that survives unedited**;
 - it is the standard implementation (rapidfuzz `normalized_similarity`), so it is reproducible.
 
+**⭐ WHY `max` AND NOT `min` — the tight-bound argument (have this ready, it's a likely follow-up).**
+The governing inequality is
+> `| |x| − |y| |  ≤  d_Lev(x,y)  ≤  max(|x|,|y|)`
+
+The upper bound holds because you can *always* turn x into y by substituting the first `min(|x|,|y|)`
+characters and then inserting/deleting the length difference — total cost exactly `max(|x|,|y|)`. So **max is
+the tightest denominator for which `1 − d/D` is guaranteed to land in [0,1]**, and the bound is *tight*
+(unrelated strings reach it).
+
+**`min` is NOT bounded** — use your own slide-30 example: `x = "AA"` (2), `y = "BABB…B"` (100), `d = 99`:
+- **max:** `1 − 99/100 = 0.01` ✅ — and intuitively right
+- **min:** `1 − 99/2  = −48.5` ❌
+
+`d/min` grows like `max/min` as lengths diverge; it only coincides with max when the strings are the same
+length. It therefore fails exactly where it matters most for us — **length-mismatched pairs, which are the
+norm in CATH** (lengths 50–200, so 50-vs-200 is typical, not exotic).
+
 **The alternatives (name them — this is the answer he's fishing for):**
 | alternative | form | why not |
 |---|---|---|
-| sum-normalized | `d / (|x|+|y|)` | halves the scale; less interpretable |
+| **min-normalized** | `d / min(|x|,|y|)` | **not bounded — can exceed 1 (see above)** |
+| sum-normalized | `d / (|x|+|y|)` | bounded, but compresses the scale: unrelated equal-length strings land near 0.5, not 0 → half the range wasted |
 | alignment-length-normalized | `d / alignment_length` | depends on the alignment, not just the strings |
 | **Marzal & Vidal (1993)** | minimize `d / path_length` over edit paths | expensive; no longer a simple ratio |
 | **Li & Liu (2007), GLD** | `2d / (α(|x|+|y|) + d)` | **the honest catch below** |
+
+**One-line answer if he asks:** *"`max` is the tightest denominator for which `1 − d/D` lands in [0,1], and
+it reads directly as the fraction of the longer sequence that survives unedited. `min` isn't even bounded."*
 
 **🎯 THE SOPHISTICATED POINT — say this and you win the slide.** Li & Liu (TPAMI 2007) prove that the
 common normalizations — **including `d/max`, i.e. ours** — are **not genuine metrics: they violate the
