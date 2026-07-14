@@ -132,6 +132,7 @@ asked: sample independent (non-perturbed) pairs at mismatched lengths, or narrow
 | 3 | Proteins as symbolic strings | 3 | EDIT |
 | 4 | From similarity search to protein embeddings | 4 | REBUILD |
 | 5 | Three questions | 5 | EDIT |
+| 5b | **Why is this hard?** (Lev is a metric, but not a Euclidean one) | — | **NEW** |
 | 6 | Our approach (animated build) | 6+7 | REBUILD |
 | 7 | What label supervises the model? | 8 | EDIT |
 | 8 | Which data — for training, for evaluation? | — | **NEW** |
@@ -219,6 +220,75 @@ the strict, global one. That's the gap.
 **NARRATIVE.** That breaks into three questions, roughly easy to hard. Can we build the embedding at all.
 Does it transfer across the three alphabets. And does it actually beat a general embedding like ESM-2, plus
 a cheap classical baseline — because if a trigram counter matches me, the training wasn't worth it.
+
+---
+
+### 5b — Why is this hard? *(NEW — from the professor's email, 2026-07-13)*
+**STATUS: NEW. Recommended for the MAIN deck**, directly after the three questions. It is the answer to
+*"is this problem even non-trivial?"* — the first thing a committee wants — and it **sets the success
+criterion** before any result is shown, which protects every number that follows.
+
+**CHANGES** — one slide, three beats:
+
+**1. Levenshtein IS a metric — but not a Euclidean one.**
+It satisfies identity, symmetry and the triangle inequality. What it does *not* satisfy is embeddability
+into a Euclidean space without loss. This is a theorem, not a suspicion:
+- **Krauthgamer & Rabani (2006/2009):** embedding edit distance on {0,1}ⁿ into ℓ₁ requires distortion
+  **Ω(log n)** (n = *string length*). Since ℓ₂ embeds isometrically into ℓ₁, the same lower bound applies
+  to Euclidean space. **No 128-d vector space can reproduce all Levenshtein distances exactly.**
+- **Ostrovsky & Rabani (2007):** the matching upper bound, 2^O(√(log d · log log d)) — so a low-distortion
+  embedding exists, but "low" is not "none".
+- Intuition (your own words in the email, and it is the accepted one): edit distance is **hierarchical /
+  tree-like**, not flat — and trees notoriously do not embed in Euclidean space.
+
+**2. Why not just embed the pool we happen to have?**
+**Bourgain:** *any* n-point metric embeds into ℓ₂ with distortion O(log n) — so for a **fixed, finite**
+set of strings, a bounded-distortion embedding always exists. *(Careful: this n = number of points; the
+Krauthgamer–Rabani n = string length. Do not conflate them on the slide.)* But such an embedding is
+**constructed for that point set** — it is transductive. It gives you no vector for a *new* string. And
+that is exactly the professor's point:
+
+> *"Das Embedding macht nur dann Sinn, wenn ich es einmal absolut für alle berechne. Wenn ich jedes Mal neu
+> ansetzen muss, dann kann ich auch gleich Lev direkt berechnen."*
+
+So what you need is not *an* embedding — it is an **inductive map**, a function `string → vector` that
+generalises to strings it has never seen and is computed **once, per sequence, amortised over all queries**.
+**That is precisely what a neural encoder is, and it is why the problem is a learning problem at all.**
+
+**3. Therefore the goal is not isometry — it is a useful approximation.**
+> We should not expect the embedding to reproduce every Levenshtein distance. Theory says it cannot. The
+> question is whether it learns an approximation good enough to **rank** and **retrieve** — which is exactly
+> what bioinformatics runs on anyway (Greener: *"for candidate retrieval, small inaccuracies can be
+> acceptable"*).
+
+**This reframes the entire evaluation, and you should say so:** it is *why* the primary metrics are
+Spearman (rank) and MAP@10 (retrieval) rather than RMSE on the distance value. That is no longer a
+convenient choice — it is the theoretically correct one.
+
+**Footnote / peer:** **Vinden, Foxcroft & Antonie (2022), IJPDS** — *Analysing Siamese Neural Network
+Architectures for Computing Name Similarity*. Same hypothesis as ours, different domain (25,000 surname
+pairs): can a Siamese network beat classical string-similarity measures? Their honest finding: an
+**ensemble of traditional measures performs about on par**, though *"there may be instances where a Siamese
+network outperforms other similarity measures"* — at considerable training cost. **Use this as an honest
+prior, not as support.** And note the shape of it: on short names, where surface overlap is already an
+excellent proxy, classical ≈ neural — *which is exactly what my AA column shows.* The neural win appears
+where surface overlap stops being a reliable proxy (SS/3Di). Their result and mine are the same story
+sampled at two points.
+
+**NARRATIVE.** Before any results — is this problem actually hard? Levenshtein *is* a metric: identity,
+symmetry, triangle inequality all hold. But it is not a **Euclidean** metric, and that is a theorem, not a
+hunch: embedding edit distance into ℓ₁ — and therefore into any Euclidean space — provably requires
+distortion that grows with string length. Intuitively, edit distance is *tree-like*, hierarchical, and trees
+famously don't fit into flat vector spaces. So no 128-dimensional vector space can reproduce all
+Levenshtein distances exactly. Now, you might object: for a *fixed* set of sequences, a good embedding does
+exist — Bourgain guarantees it. But it's constructed for that particular set. It hands you no vector for a
+new sequence, so you'd have to rebuild it every time — and if I have to recompute anything per query, I
+might as well just compute Levenshtein directly. What I need is an **inductive** map: a function from
+string to vector that generalises to sequences it has never seen, computed once per sequence and amortised
+over every future query. That is exactly what a neural encoder is — and it is why this is a learning problem
+in the first place. Which sets my success criterion honestly: I am **not** claiming to reproduce edit
+distance exactly. Theory says I can't. I'm asking whether the approximation is good enough to *rank* and to
+*retrieve* — and that is why my primary metrics are Spearman and MAP, not the raw distance error.
 
 ---
 
@@ -334,12 +404,26 @@ next slide — it explains the amino-acid column.
 - Add the metric split explicitly: *AA is pair-like (median |T| = 1) → hit@10. SS/3Di are neighbourhoods
   (many valid neighbours) → MAP@10.*
 - Add the line that sets up slide 16: **a good AUROC does not imply a good retriever.**
+- **NEW — lecture tie-in (VL05, his own significance lecture).** Add one framing line above the metric list:
+  > A raw score is not interpretable on its own — it needs a **background distribution**. Alignment scores
+  > are read against a control population; embedding distances are no different.
 
-**NARRATIVE.** Three views, because no single number is honest here. Spearman asks whether the *geometry*
-tracks edit distance across the whole range — that's threshold-free, and it's the primary metric. AUROC
-asks whether high-similarity pairs separate from the rest. And retrieval asks whether the true neighbours
-actually reach the top of a ranked list — which is the deployment question. One warning I'll come back to:
-a method can win on AUROC and still be a poor retriever.
+  **Citation to put in the speaker note (his exact wording):** *VL05 slide 4 — "We need controls" · "Better:
+  a control population" · "How is the control population distributed?" · "How does the score relate to this
+  distribution?"* Significance requires a control population **and** a score distribution.
+
+  This makes the whole metric section *his* logic, and it converges with slide 5b: theory says there is no
+  exact isometry, so an absolute distance value has no meaning to defend — **rank, separation and retrieval
+  do.** Say the two together and the metric choice stops looking like a preference and starts looking
+  forced.
+
+**NARRATIVE.** Three views, because no single number is honest here. And the reason follows the logic from
+the significance lecture: a raw score means nothing on its own — an alignment score is only interpretable
+against a control distribution. The same is true of an embedding distance. So I don't report raw vector
+distances. Spearman asks whether the *geometry* tracks edit distance across the whole range — threshold-free,
+and it's my primary metric. AUROC asks whether the high-similarity pairs *separate* from the background
+population. And retrieval asks whether the true neighbours actually reach the top of a ranked list — the
+deployment question. One warning I'll come back to: a method can win on AUROC and still be a poor retriever.
 
 ---
 
@@ -393,11 +477,26 @@ length-normalised, recovers. And only the SNN holds up everywhere. That gap is t
 **CHANGES**
 - All three panels titled `… (AA-enc)`.
 - Label the AA panel honestly: **n = 5 high pairs** — say it before anyone asks.
+- **NEW — name what this figure is (VL05).** This panel *is* a score-versus-background-distribution plot:
+  the grey cloud is the control population, the red is the labelled positives. Say that word — it is
+  exactly the significance logic from his lecture, applied to embedding distance instead of alignment score.
+- **NEW — explain the n's (VL2).** The high-similarity counts differ wildly between panels
+  (**AA n = 5 · SS n = 623,077 · 3Di n = 6,009**) and v13 never explains why. The reason is a lecture fact:
+  **structure is more conserved than sequence.** Two proteins can share ~20 % sequence identity and still
+  adopt near-identical folds (VL2: haemoglobin / leghaemoglobin), so the structure-derived alphabets have
+  *many* high-similarity pairs where AA has almost none. **This is a data-distribution explanation, not a
+  biological claim** — it is *why* the metric split and the AA control exist. Do **not** say "so my encoder
+  finds remote homologues"; you have not shown that and do not need it.
 
-**NARRATIVE.** Same result, shown rather than tabulated. Grey is the low/mid cloud, red is the
-high-similarity pairs, and the dashed line is where they'd be split. They separate cleanly in all three
-alphabets — with the *same* encoder. One caveat I'll put up front: the AA panel's high group is five pairs.
-That's not a statistical claim, it's the entire high-similarity content of the dataset.
+**NARRATIVE.** Same result, shown rather than tabulated — and this is the significance picture from the
+lecture, applied to embeddings: grey is the background population of low/mid pairs, red is the
+high-similarity pairs, and the dashed line is where they separate. They separate cleanly in all three
+alphabets, with the *same* encoder. Two things to notice before anyone asks. First, the AA panel's red group
+is **five pairs** — that isn't a statistical claim, it's the entire high-similarity content of the dataset.
+Second, look at how different those counts are: five in AA, six hundred thousand in SS. That's not an
+artefact — structure is simply more conserved than sequence, so on the structure-derived alphabets there
+genuinely *are* many similar pairs. That difference is exactly why AA gets a different retrieval metric than
+SS and 3Di.
 
 ---
 
@@ -419,6 +518,15 @@ punished. That's why the absolute values on the next slide look low even when th
 - Subtitle: *"among ~10k **sequences**"*.
 - Say **"set-based"** out loud every single time — the win is metric-specific.
 - Keep the AUROC-vs-MAP contrast text; it is the sharpest argument on the slide.
+- **NEW — his own lecture backs this argument (VL05 slide 31).** That slide covers ROC/AUC *and* warns that
+  **accuracy is misleading under class imbalance.** Your pools are extremely imbalanced — on 3Di roughly
+  6,000 high-similarity pairs out of ~55 M. So: (a) that is why **accuracy appears nowhere** in this thesis,
+  and (b) the same warning generalises one step further, which is the whole point of this slide. **Dice on
+  3Di is the live demonstration: AUROC 0.91, MAP 0.24.** Be precise about the mechanism — AUROC is
+  *prevalence-insensitive*, not "wrong under imbalance"; but precisely *because* it ignores prevalence, a
+  method with a small false-positive rate still floods a top-10 list when true positives are this rare.
+  A strong separation number therefore does **not** imply a usable retriever. **Citing his own slide for
+  this is the most persuasive move available on this slide.**
 
 **NARRATIVE.** Now the deployment question: given a query, do the true edit-distance neighbours actually
 reach the top ten out of ten thousand sequences? On amino acids everything saturates again — one true
@@ -471,6 +579,15 @@ for that.
 - **Then extend it to SS and 3Di** — connects the BLASTp benchmark to the transfer story.
 - Pre-empt *"why not use Fenoy's dataset from the start?"* → **because it is AA-only, and the thesis
   question is cross-alphabet transfer.** Say this out loud; he asked it for you.
+- **NEW — geometry choice (follows directly from slide 5b).** If edit distance is tree-like, a *flat*
+  Euclidean space is the wrong container. **NeuroSEED (Corso et al., NeurIPS 2021)** tested exactly this and
+  found **hyperbolic** space captures the hierarchy — an average **38 % reduction in embedding RMSE** over
+  the best competing geometry. Our encoder is Euclidean (cosine/L2). Swapping the output geometry is a
+  cheap, well-motivated next experiment, and it is the natural continuation of the "why is this hard" slide.
+- **Optional (VL05-flavoured, only if he bites):** a *significance* view of embedding distance — calibrate a
+  score against the background distribution of random pool pairs, i.e. the E-value analogue for a vector
+  space. **Caveat before you offer this:** post-hoc calibration (isotonic) was already tested and did **not**
+  improve retrieval over raw L2 — so pitch it as an *interpretability* device, never as a performance lever.
 - Keep: ProtTrans row, MAP@1–50, English as 4th modality, reverse/counter example.
 
 **NARRATIVE.** Three things next. The one I'm most interested in is the BLAST bridge: run BLASTp on my own
@@ -497,7 +614,213 @@ thesis question is whether this transfers *across* alphabets.
 | Runtime table (31) | "is it actually faster?" |
 | hit@10 / MAP@10 query cards (32, 33) | qualitative receipts |
 | **NEW:** BLAST identity-vs-coverage screenshot | the supervisor's own example — ask him to resend it |
+| **NEW:** Why a Siamese network? | see spec below — the *mechanism* behind slide 17; pull it up on "why not ESM-2?" |
+| **NEW:** Why more than a raw embedding distance? | VL05 — his own significance lecture; answers *"what does a distance of 0.3 mean?"* |
+| **NEW:** Edit distance vs biological alignment scores | VL04 — the scope defence; answers *"why not BLOSUM?"* |
 | ~~25~~ | **delete** — duplicate of 28 |
+
+---
+
+### BACKUP — Why more than a raw embedding distance? *(ties to his VL05: Significance / Distributions)*
+
+**Why it earns its place:** it answers the question he is most likely to ask — ***"what does an embedding
+distance of 0.3 actually mean?"*** — in the vocabulary of his own lecture. And it converges with slide 5b:
+theory says no exact isometry exists, so an absolute distance value has nothing to be true *to*. Both roads
+end at the same place: **report rank, separation and retrieval — never a raw distance.**
+
+**Layout — two parallel columns, same shape:**
+
+| his lecture (VL05) | this thesis |
+|---|---|
+| alignment score | embedding similarity |
+| → compare to a **control / background distribution** | → compare **high-normLev** vs **low/mid-normLev** distributions |
+| → decide whether the score is meaningful | → decide whether the geometry separates true neighbours |
+
+**Lecture anchors** (cite the slide numbers — he will recognise them):
+- **s4 — the load-bearing one.** *"We need controls" · "Better: a control population" · "How is the control
+  population distributed?" · "How does the score relate to this distribution?"* → significance needs a
+  control population **and** a score distribution. This is the slide to name out loud.
+- s8 — real score distributions are **not normal** (peak + tail). *Matches your data: the normLev
+  distribution is heavily skewed with a long thin tail — which is why you show it exhaustively.*
+- s16 — Z-score = score relative to a control population. s19 — E-value = expected better hits by chance.
+  **Analogy only — you compute neither** (see honesty guard).
+- **s31 — ROC/AUC, and the warning that accuracy misleads under imbalance.** → why **accuracy appears
+  nowhere** in this thesis, and the lecture-sanctioned root of the AUROC ≠ MAP argument on slide 16.
+- s32 — bootstrapping = robustness of the analysis. *You already do this: the MAP@10 95 % CIs.*
+
+**Where this already exists in the deck — say so, it's free credibility:**
+- **Slide 14** (separation panel) *is* a score-vs-background-distribution plot.
+- **AUROC** (slide 13) *is* VL05 s24–31, applied to embedding distance.
+- **The MAP@10 bootstrap CIs** (slide 16) *are* VL05 s32.
+
+**HONESTY GUARD:** you do **not** compute a Z-score or an E-value. Say ***"analogous to"***, never "we
+compute". If you claim an E-value you will be asked for the null model.
+
+**ANSWER TO "what does a distance of 0.3 mean?"** *(memorise this)*
+> On its own, not much — and that's the point. I interpret it exactly the way an alignment score is
+> interpreted: against a background distribution. I have exact-Levenshtein labels for every pair, so I can
+> ask whether the high-similarity population separates from the control population — that's AUROC — and
+> whether that separation is actually useful for finding neighbours — that's MAP@10. A raw distance without
+> a background is as uninterpretable as a raw alignment score without one.
+
+---
+
+### BACKUP — Edit distance vs biological alignment scores *(ties to his VL04: Substitution Matrices)*
+
+**Why it earns its place:** it is the **scope defence**. It stops "you should have used BLOSUM" before it
+starts, and it makes your uniform edit costs a *deliberate choice* rather than an oversight.
+
+| Levenshtein / normLev *(this thesis)* | BLAST / BLOSUM *(the alignment tradition)* |
+|---|---|
+| **global** string operation | **local** biological alignment |
+| substitution / insertion / deletion | substitution matrix + gap open/extend penalties |
+| **all substitutions cost the same** | costs encode biochemistry & evolution |
+| target: a **symbolic distance** | target: **homology / function** search |
+
+**Lecture anchors:** VL04 s25 — *LCS treats all matches equally and all mismatches equally; substitution
+matrices refine exactly that*. This is the honest lineage line: **normLev is the unweighted limit of the
+same alignment tradition.** Also s31 (matrices reflect physico-chemical properties), s53 (gap open/extend),
+s54 (low sequence similarity can still mean high structural similarity → ties to slide 14's n-counts).
+
+**Speaker line (scope, say it plainly):**
+> I am **not** trying to replace BLOSUM or BLAST for biological homology. I deliberately use normalized
+> Levenshtein as a *stricter, unweighted, symbolic* distance — and then ask whether an embedding can
+> preserve **that** target, across alphabets. Uniform edit costs are the point, not a simplification I
+> forgot to fix: the question is whether a network can learn the **operation**, and a biochemical cost
+> matrix would let it learn amino-acid statistics instead.
+
+*(This is fully consistent with the algorithm-approximation lane: no biological evaluation is claimed.)*
+
+---
+
+### BACKUP — Why a Siamese network?
+
+**Why this slide earns its place:** it is the structural answer to *"why not just use ESM-2?"*. ESM-2 **is**
+the left column — a single-input model whose embedding is a *by-product* of predicting masked residues.
+Ours is the right column, where the embedding *is* the target. Pull this up in Q&A and slide 17 stops being
+a scoreboard and becomes an argument.
+
+**Message:** *Many networks produce embeddings. The Siamese setup supervises the **geometry** of the
+embedding space directly.*
+
+**Layout — two columns.** Redraw in the slide-6 visual language (same boxes/arrows) so it reads as a
+variation, not a new diagram.
+
+*Left — standard single-input model*
+```
+sequence → encoder → embedding → classifier → label for that sequence
+```
+> Learns an embedding that is *useful for predicting a property of one sequence*.
+> Examples: protein family · **masked residue (← this is ESM-2)** · structure/function label.
+> The embedding is a **by-product**.
+
+*Right — Siamese pair model*
+```
+sequence a ─┐
+            ├→  the SAME encoder (shared weights)  →  e_a , e_b  →  compare vectors  →  similarity label
+sequence b ─┘
+```
+> Learns an embedding where **distances between vectors are themselves supervised**.
+> The embedding is the **target**.
+
+**Bottom takeaway (put on the slide):**
+> Edit distance is a **relation between two strings**, not a property of one. Training on pairs is what
+> makes the vector geometry the target: high-normLev pairs must land nearby, low-normLev pairs far apart.
+
+**Two details worth a callout box:**
+- **Shared weights are load-bearing.** One encoder, used twice — not two encoders. That is what forces a
+  *single common space* in which distance is symmetric and comparable. Two separate towers could encode
+  a and b in different conventions and let the head reconcile them.
+- **The head is discarded at inference.** So the geometry is not just *a* thing the training produced —
+  after training it is the **only** thing that survives.
+
+**NARRATIVE.** A fair question: lots of networks produce embeddings — why this architecture? Look at the
+two side by side. On the left, the standard setup: one sequence in, encoder, embedding, classifier, and the
+label is a property of *that one sequence* — its family, or a masked residue. That is exactly what ESM-2 is.
+The embedding is a by-product; nothing in the objective ever says what *distance* in that space should
+mean. On the right: two sequences go through the *same* encoder — shared weights, which is what forces them
+into one common space — and the label is a property of the **pair**. And that's the whole point, because
+edit distance is a *relation*, not a property of a single string. You cannot supervise it one sequence at a
+time. So the geometry becomes the training target: high-similarity pairs are pulled together, low-similarity
+pairs pushed apart. And since we throw the head away at inference, that geometry is the only thing left.
+The encoder isn't special because it makes a 128-dimensional space — plenty of models do. It's special
+because the objective told the space what distances are supposed to mean.
+
+**Anticipated follow-up — keep as speaker note, NOT on the slide:** *"Why a 3-class head and not regress
+normLev directly?"* Answer: the head is discarded anyway, so what matters is the geometry it induces, and
+the banded cross-entropy still orders pairs within a band. But be honest — the 3-band head **does** compress
+the top of the range (that is a known limitation from the diagnostic work, and post-hoc calibration did not
+recover it). Don't volunteer this; have it ready.
+
+---
+
+## Q&A bank — memorise these four
+
+**"What does an embedding distance of 0.3 mean?"** *(most likely question — it's his own lecture's theme)*
+> On its own, not much, and that's exactly the point. I read it the way an alignment score is read: against
+> a background distribution. I have exact-Levenshtein labels for every pair, so I ask whether the
+> high-similarity population separates from the control population — AUROC — and whether that separation is
+> useful for finding neighbours — MAP@10. A raw distance without a background is as uninterpretable as a raw
+> alignment score without one. *(And theory backs this: since edit distance has no exact Euclidean embedding,
+> there is no absolute distance value for it to be "correct" to — only the ordering can be right.)*
+
+**"Why these metrics?"**
+> The lecture's logic: scores need context. Spearman asks whether the score is monotonic with the target,
+> AUROC asks whether the labelled distributions separate, and MAP@10 asks whether that separation is
+> actually useful for retrieval.
+
+**"Why not BLAST / BLOSUM?"**
+> They are biologically informed *local* alignment tools. My target isn't homology — it's global normalized
+> edit distance. That stricter, unweighted target is what lets me test whether a learned embedding preserves
+> a *symbolic* distance, and whether it does so across alphabets. Uniform edit costs are deliberate: a
+> biochemical cost matrix would let the network learn amino-acid statistics instead of the operation.
+
+**"Why SS / 3Di at all?"**
+> Two reasons, and I'd separate them carefully. The **methodological** one: they are structure-derived
+> symbolic alphabets, so they test whether the learned *operation* transfers beyond the amino-acid string —
+> that's the algorithm question. The **data** one: structure is more conserved than sequence, so those
+> alphabets actually contain high-similarity pairs, where natural AA has five. I'm not claiming to detect
+> remote homology — I'm claiming the operation transfers.
+
+---
+
+## Ammunition for the professor's email thread (2026-07-13)
+
+His mail makes one **mechanism claim**, one **speculation**, and one **open question**. You can answer all
+three, and two of them land in your favour.
+
+**1. His mechanism — and it's a good one, adopt it.**
+> *"esm etc. wurden gar nicht per Lev optimiert, sondern durch Reprediction. Im Endeffekt sind sie eine
+> möglichst verlustfreie Kompression. Nebenbei fällt ab, dass eine solche Kompression Lev approximiert."*
+
+This is the **best available explanation for why ESM-2 is a strong baseline at all**, and it slots straight
+into the Siamese backup slide: masked-language modelling ⇒ near-lossless compression ⇒ edit-distance
+similarity falls out as a **by-product**. Cite it back to him and build on it.
+
+**2. His speculation — this one your data answers.**
+> *"D.h. dass esm und co wahrscheinlich schon ein Optimum darstellen."*
+
+That is an **empirical** claim, and it is testable — which is the entire thesis. And your data says *no*:
+a by-product of a compression objective is exactly the kind of thing a **task-specific** objective should
+beat, and on SS/3Di it does (Spearman 0.93 / 0.89 vs ESM-2's 0.88 / 0.68; set-based MAP roughly 2×).
+The polite form: *"Ihr Kompressions-Argument erklärt genau, warum ESM eine so starke Baseline ist — aber
+ein Nebenprodukt ist eben ein Nebenprodukt, und genau das teste ich. Auf SS/3Di schlägt das
+task-spezifische Ziel die Kompression."* **This is your thesis's claim, and he handed you the sharpest way
+to phrase it.**
+
+**3. His open question — it already has an answer, and it's in your peer set.**
+> *"Es scheint in der Mathematik keine Gebiete zu geben, in denen Vektoren dynamisch ihre Dimensionen
+> verändern, also quasi strings als Vektoren mit geeigneten Operationen aufgefasst werden."*
+
+There is such a field: **metric embeddings / sketching of edit distance**. The direct answer is the **CGK
+embedding (Chakraborty, Goldenberg & Koucký, 2016)** — a randomised map that sends *variable-length* strings
+into a *fixed-length* Hamming vector with bounded distortion. That is literally "strings as vectors with
+suitable operations", it is already one of your named peers (alongside CNN-ED and NeuroSEED), and it is the
+classical counterpart of what your encoder learns. Reply with it — it is a genuinely good look.
+
+**Your own instinct was right, and it's published.** In your reply you wrote that edit distance *"ähnelt
+eher Graph/Baum-Struktur"*. That is exactly the **NeuroSEED** finding: hyperbolic space, which is the natural
+geometry for hierarchies, beats Euclidean by ~38 % embedding RMSE. Say so — and put it in the outlook.
 
 ---
 
