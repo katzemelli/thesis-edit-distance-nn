@@ -26,19 +26,20 @@ SNN_BY_FEED = {'AA': model_aa, 'SS': model_aa, '3Di': model_aa}
 ENC_LABEL   = {'AA': 'AA-enc', 'SS': 'AA-enc', '3Di': 'AA-enc'}   # §11 separation_panel
 ```
 
-**Numbers this invalidates — every SNN *SS* number in the deck.** Baselines (trigram / Dice / length /
-ESM2) are unaffected; AA and 3Di are already AA-enc and are unaffected.
+### ✅ D1 RE-RUN DONE (2026-07-14). Authoritative numbers → `RESULTS_colab29_2026-07-14_D1.md`
 
-| slide | quantity | v13 value (SS-enc) | after re-run |
-|---|---|---|---|
-| 13 | Spearman SS | 0.94 | **PENDING** (colab30 ladder, AA-enc: **0.93**) |
-| 14 | AUROC SS | 0.984 | **PENDING** (ladder, AA-enc: ~0.98 — different protocol, not interchangeable) |
-| 15 | separation panel SS | `SS (SS-enc)` | regenerate as `SS (AA-enc)` |
-| 17 | MAP@10 SS @0.70 | 0.44 | **PENDING** — no AA-enc estimate exists, must re-run |
-| 17 | MAP@10 SS @0.90 | 0.55 | **PENDING** |
+**The SS retrieval win survived, and Spearman went UP.** The AA encoder is *better* on SS than the
+SS-trained encoder was — so D1 costs nothing and buys the clean claim.
 
-Until colab29 is re-run, **do not quote any SS SNN number.** The ladder values are the best guess but the
-AUROC/MAP protocols differ (ladder = stratified pairs; colab29 = full-pool exhaustive).
+| quantity | old (SS-enc) | **new (AA-enc, D1)** |
+|---|---|---|
+| Spearman SS | 0.94 | **0.970** ⬆ |
+| AUROC SS | 0.984 | **0.981** |
+| MAP@0.70 SS | 0.442 | **0.440** *(CIs overlap — unchanged)* |
+| MAP@0.90 SS | 0.55 | **0.527** |
+
+AA and 3Di are essentially unchanged (they were already AA-enc) — exactly the expected signature that the
+patch did only what it should. **Every SNN cell in the deck is now the same frozen model.**
 
 ### D2. Number hygiene — v13 contradicts itself
 
@@ -428,7 +429,16 @@ deployment question. One warning I'll come back to: a method can win on AUROC an
 ---
 
 ### 12 — CENTERPIECE: Does the geometry track edit distance?
-**STATUS: REBUILD.** Numbers **PENDING** the D1 re-run (SS column).
+**STATUS: REBUILD.** ✅ Numbers final (D1 run, 2026-07-14).
+
+**THE TABLE (Spearman ρ, AA / SS / 3Di):**
+| method | AA *(control)* | SS | 3Di |
+|---|---|---|---|
+| trigram | 0.53 | 0.19 | **−0.19** |
+| Dice | 0.45 | 0.67 | 0.79 |
+| length-only | −0.74 | 0.66 | 0.47 |
+| ESM2 | 0.13 | 0.88 | 0.68 |
+| **SNN** | **0.08** | **0.97** | **0.93** |
 
 **CHANGES**
 - **Do NOT grey out the AA column.** Keep it fully visible and *explain* it. Replace the grey block with a
@@ -438,8 +448,10 @@ deployment question. One warning I'll come back to: a method can win on AUROC an
 - Fenoy contextualisation, on the slide, one line:
   > Fenoy's ρ = 0.66 is ESM cosine vs **BLASTp identity** (local, coverage-dependent). Ours is vs **global
   > normLev**. Different — and stricter — ground truth. Direct bridge = outlook.
-- Baselines unchanged by the re-run: trigram 0.50 / 0.20 / −0.18 · Dice 0.44 / 0.68 / 0.79 ·
-  length −0.70 / 0.66 / 0.50 · ESM2 0.18 / 0.88 / 0.68.
+- **Note the two sharpest cells:** **SNN SS = 0.97** (up from 0.94 with the *retrained* SS encoder — the
+  transfer encoder is *better*), and **trigram 3Di = −0.19**, i.e. *anti*-correlated: the raw shared-3-gram
+  count tracks **length**, not edit distance. That's a stronger statement than "it collapses to chance."
+- **AA SNN = 0.08.** Say it before anyone points at it — see the floor argument.
 
 **NARRATIVE.** This is the centrepiece. Rows are methods, columns are the three alphabets, and the number is
 the Spearman correlation between each method's similarity and the true normalized Levenshtein. Start with
@@ -456,17 +468,39 @@ numbers are against strict global edit distance. So these are not the same exper
 ---
 
 ### 13 — How hard is the discrimination task?
-**STATUS: KEEP** the figure; SS bar re-generates with D1.
+**STATUS: KEEP** the figure. ✅ Numbers final (D1).
 
-**CHANGES** — add the setup line for slide 16:
-> AUROC asks whether high-similarity pairs separate from low/mid ones. It does **not** guarantee good
-> ranking in a crowded pool.
+**AUROC vs random negative** (the bars): trigram **1.00 / 0.34 / 0.14** · Dice **1.00 / 0.79 / 0.91** ·
+length **0.76 / 0.82 / 0.82** · ESM2 **1.00 / 0.87 / 0.67** · **SNN 1.00 / 0.98 / 1.00**
+
+**CHANGES**
+- Add the setup line for slide 16:
+  > AUROC asks whether high-similarity pairs separate from low/mid ones. It does **not** guarantee good
+  > ranking in a crowded pool.
+- **⭐ NEW AND IMPORTANT — put `AUROC_hard` on this slide.** The run also scores against **hard negatives**
+  (pairs in **[0.30, 0.70)** — genuinely similar-ish) instead of random ones. This is the honest contrast,
+  and it is the **strongest single result in the whole run**:
+
+  | 3Di | vs random negative | **vs hard negative** |
+  |---|---|---|
+  | Dice | 0.91 | **0.76** ⬇ |
+  | ESM2 | 0.67 | **0.56** ⬇ *(near chance)* |
+  | **SNN** | 1.00 | **0.99** *(barely moves)* |
+
+  *(SS tells the same story: ESM2 0.87 → 0.85, Dice 0.79 → 0.77, **SNN 0.98 → 0.98**.)*
+  Show it as a second bar per method, or as a paired "easy vs hard" panel. It converts the claim from
+  *"we're better"* into *"**the baselines only separate the easy cases**"* — a far harder claim to attack.
 
 **NARRATIVE.** Is the task even hard? On amino acids — no. Everything saturates at 1.0: trigrams, Dice,
-ESM-2, mine. So AA alone proves nothing, which is exactly why I don't lead with it. The interesting part is
-what happens on the other two alphabets: the raw trigram count *collapses* — below chance — because with a
-three-letter alphabet, shared 3-grams are mostly length artefacts, not signal. Dice, which is
-length-normalised, recovers. And only the SNN holds up everywhere. That gap is the contribution.
+ESM-2, mine. So AA alone proves nothing, which is exactly why I don't lead with it. On the other two
+alphabets the picture changes completely. The raw trigram count *collapses* — 0.34 on SS, 0.14 on 3Di,
+far below chance — because shared 3-grams there mostly track length, not edit distance. Dice, which is
+length-normalised, recovers. And only the SNN holds everywhere. But here's the part I want to draw out.
+These bars grade every method against a *random* negative — an easy contrast. If instead I grade against
+**hard** negatives, pairs that are genuinely similar but below my threshold, ESM-2 on 3Di falls from 0.67
+to **0.56 — essentially chance** — and Dice drops to 0.76, while the SNN stays at **0.99**. So the baselines
+can tell an easy positive from an easy negative. They cannot tell apart the pairs that are actually hard to
+tell apart. That's the differentiated result.
 
 ---
 
@@ -475,7 +509,8 @@ length-normalised, recovers. And only the SNN holds up everywhere. That gap is t
 *(Not colab26 — that's the scaling benchmark.)*
 
 **CHANGES**
-- All three panels titled `… (AA-enc)`.
+- All three panels titled `… (AA-enc)` — ✅ regenerated in the D1 run. Panel AUROCs: **AA 0.999 · SS 0.981 ·
+  3Di 0.998** (all one encoder).
 - Label the AA panel honestly: **n = 5 high pairs** — say it before anyone asks.
 - **NEW — name what this figure is (VL05).** This panel *is* a score-versus-background-distribution plot:
   the grey cloud is the control population, the red is the labelled positives. Say that word — it is
@@ -511,13 +546,22 @@ punished. That's why the absolute values on the next slide look low even when th
 ---
 
 ### 16 — Can the encoder retrieve high-similarity neighbours?
-**STATUS: EDIT.** Numbers **PENDING** the re-run; fix the contradictions (§D2).
+**STATUS: EDIT.** ✅ Numbers final (D1).
+
+**MAP@10 @ 0.70** (set-based, 95 % CI): SNN **SS 0.440 [0.433, 0.447]** · **3Di 0.488 [0.444, 0.528]** ·
+ESM2 **SS 0.218 [0.212, 0.223]** · **3Di 0.283 [0.244, 0.319]** · Dice **SS 0.025 · 3Di 0.240** ·
+trigram **0.006 / 0.020** · length **0.016 / 0.009**. *(median |T|: SS = 22, 3Di = 14.)*
+**MAP@10 @ 0.90:** SNN **SS 0.527 · 3Di 0.696** vs ESM2 **0.224 / 0.255**. **All CIs non-overlapping.**
 
 **CHANGES**
-- Every number from the regenerated `colab29_all_metrics.csv`. Kill "0.530" and "0.27".
+- **🔎 The v13 "0.530" mystery is solved: it was the CI *upper bound*, quoted as the point estimate.**
+  The value is **0.488**. Dice on 3Di is **0.240**, not 0.27. Fix both.
 - Subtitle: *"among ~10k **sequences**"*.
 - Say **"set-based"** out loud every single time — the win is metric-specific.
-- Keep the AUROC-vs-MAP contrast text; it is the sharpest argument on the slide.
+- Keep the AUROC-vs-MAP contrast text; it is the sharpest argument on the slide. The live example is
+  **Dice on 3Di: AUROC 0.91, MAP 0.24** — and his own VL05 s31 warns about exactly this.
+- **Optional, if MAP is called too harsh:** the SNN also wins the *forgiving* metric — **hit@10 SS 0.887 /
+  3Di 0.836** vs ESM2 **0.639 / 0.648**. Keep in the back pocket.
 - **NEW — his own lecture backs this argument (VL05 slide 31).** That slide covers ROC/AUC *and* warns that
   **accuracy is misleading under class imbalance.** Your pools are extremely imbalanced — on 3Di roughly
   6,000 high-similarity pairs out of ~55 M. So: (a) that is why **accuracy appears nowhere** in this thesis,
@@ -546,7 +590,18 @@ all three metrics.
   claim that ESM-2 is bad, and it isn't yours to make. Replace with:
   > ESM-2 is a strong biological representation and correlates well with BLASTp identity — it was simply
   > never trained to preserve **global** normalized edit distance.
-- Keep the scorecard framing (discrimination / Spearman / set-based retrieval / efficiency).
+- Keep the scorecard framing. ✅ Final numbers — use the new **§11c** figure from colab29
+  (`colab29_why_not_esm2.png`, values printed on the bars):
+
+  | | SNN | ESM2 |
+  |---|---|---|
+  | Spearman SS / 3Di | **0.97 / 0.93** | 0.88 / 0.68 |
+  | AUROC SS / 3Di *(random neg)* | **0.98 / 1.00** | 0.87 / 0.67 |
+  | **AUROC 3Di *(hard neg)*** | **0.99** | **0.56** ← *the killer cell* |
+  | set-based MAP@10 @0.70 SS / 3Di | **0.44 / 0.49** | 0.22 / 0.28 |
+  | set-based MAP@10 @0.90 SS / 3Di | **0.53 / 0.70** | 0.22 / 0.26 |
+  | encode+search, full AA pool | **~10 s** | ~2.2 min |
+
 - **Wording lock:** edit-distance heritage belongs to the *alignment tradition* (BLAST / Smith-Waterman),
   **not** to ESM-2.
 
@@ -584,6 +639,55 @@ for that.
   found **hyperbolic** space captures the hierarchy — an average **38 % reduction in embedding RMSE** over
   the best competing geometry. Our encoder is Euclidean (cosine/L2). Swapping the output geometry is a
   cheap, well-motivated next experiment, and it is the natural continuation of the "why is this hard" slide.
+
+**THE HEADLINE OUTLOOK ITEM — the base-paper bridge (supervisor, 2026-07-14).** *"Run ESM2 **and** the SNN
+on Fenoy's own BLASTp benchmark and measure the correlation, so the comparison to the base paper is real."*
+This is the right experiment and it retires the honesty trap for good. Spec it as `colab31`.
+
+**The dataset (VERIFIED in the paper, not guessed):** Fenoy's sequence-similarity analysis (Fig 6 /
+Table 2 — the ρ = 0.66) uses **a subset of the CAFA3 challenge dataset: 9,479 *Homo sapiens* proteins,
+length ≤ 700 aa.** They compute BLASTp similarities for all protein pairs and correlate against the cosine
+similarity of per-protein embeddings. *(CAFA3 is also their GO/function-prediction set — that's why it's
+confusing. Same source, different task.)* Pool size ≈ 9.5 k, i.e. **the same scale as our CATH pool** — a
+lucky break for comparability.
+
+**⚠️ BLOCKER — the length trap. Fix this before running anything.** Our encoder has `MAX_LEN = 200` and
+`encode_pad` **truncates**. Fenoy's proteins run to **700 aa**. A naive run would silently compare
+**200-residue prefixes** instead of proteins, and every number would look plausible and mean nothing.
+Two runs, both reported:
+1. **Length-matched encoder (primary).** Retrain with the *same recipe* at the CAFA3 length range
+   (`MIN_LEN/MAX_LEN` matched, new synthetic pairs). Same method, new weights — say so. The architecture is
+   already length-agnostic (`AdaptiveAvgPool(K=16)`), so only `encode_pad`'s cap changes. Training is cheap.
+2. **Strict zero-shot control.** The *existing frozen* encoder on the **≤ 200 aa subset** of the CAFA3 pool.
+   Fewer proteins, but genuinely zero-shot — no retraining, no truncation.
+
+**Three ground truths on the same pairs — this is the whole point:**
+| ground truth | what it is | why |
+|---|---|---|
+| **BLASTp identity** | local, coverage-blind | **reproduces Fenoy's protocol → ρ directly comparable to 0.66** |
+| **identity × coverage** | the "global-ised" BLAST number | quantifies *how much* BLASTp overestimates (slide 4!) |
+| **normLev** | strict global | our target |
+Then correlate the ground truths **against each other**. That single figure closes the loop from slide 4:
+it turns *"BLASTp identity overestimates global similarity"* from an argument into a **measurement**.
+
+**Practical notes:** all-vs-all BLASTp on 9.5 k proteins ≈ 45 M pairs — heavy. Subsample the pool (~3 k
+proteins → 4.5 M pairs) if runtime bites; exhaustive normLev via rapidfuzz is trivial at that size. Decide
+and **state** how you treat pairs with **no BLAST hit** (identity = 0 is defensible; it is also what gives
+Fenoy's Fig 6 its shape) and which E-value cutoff you use.
+
+**🚩 FRAMING TRAP — read before you present this.** Do **not** pitch this as *"we will beat 0.66."* By
+construction you probably won't, and you don't need to: BLASTp identity is a *biological, local* notion of
+similarity, and ESM-2 is a *biological* model — it should win on that target. **The experiment's value is
+threefold, and none of it is "we win":**
+1. **Replication.** ESM-2 vs BLASTp on CAFA3 should land near **0.66** → validates our whole pipeline
+   against the base paper. This alone is worth the run.
+2. **Transfer.** SNN vs **normLev** on a *non-CATH* protein set → does the encoder generalise off our data?
+3. **The real finding.** SNN and ESM-2 preserve **different notions of similarity** — ours tracks normLev,
+   theirs tracks BLASTp identity — and we can now *measure the gap between those two ground truths*.
+> **Say it like this:** *"We're not claiming to beat their number. We're showing the two embeddings are
+> optimised for two different targets, and quantifying how far apart those targets actually are."*
+A low SNN-vs-BLASTp ρ is **not a failure — it is the expected, informative result.** Frame it that way in
+advance or it will read as one.
 - **Optional (VL05-flavoured, only if he bites):** a *significance* view of embedding distance — calibrate a
   score against the background distribution of random pool pairs, i.e. the E-value analogue for a vector
   space. **Caveat before you offer this:** post-hoc calibration (isotonic) was already tested and did **not**
@@ -751,6 +855,131 @@ normLev directly?"* Answer: the head is discarded anyway, so what matters is the
 the banded cross-entropy still orders pairs within a band. But be honest — the 3-band head **does** compress
 the top of the range (that is a known limitation from the diagnostic work, and post-hoc calibration did not
 recover it). Don't volunteer this; have it ready.
+
+---
+
+## ROUND-2 FEEDBACK (2026-07-14) — the reference + rigor pass
+
+*His slide numbers refer to your newer deck, not this plan's numbering. Mapping given per item.*
+
+### R1. Citation format — "Oxford Academic is the publisher, not the journal"
+He's right, and he wants the format **exactly**: `Nachname et al., Title, Journal, Year.` — **larger, and
+directly under the figure**, so it's unmistakable that the figure isn't yours.
+
+> **Fenoy E., Edera A. A., Stegmayer G.** *Transfer learning in proteins: evaluating novel protein learned
+> representations for bioinformatics tasks.* **Briefings in Bioinformatics** 23(4), bbac232, **2022.**
+
+*(Journal = Briefings in Bioinformatics. NOT "Oxford Academic" — that's the platform. ✅ verified.)*
+
+### R2. "Es sind fast keine Referenzen drin" — the reference list
+Put a References slide at the end **and** a small citation under every borrowed figure/claim.
+
+| what | citation | status |
+|---|---|---|
+| **ESM-2** *(he named this explicitly — non-negotiable)* | **Lin Z. et al.**, *Evolutionary-scale prediction of atomic-level protein structure with a language model*, **Science** 379(6637):1123–1130, **2023.** doi:10.1126/science.ade2574 | ✅ verified |
+| Base paper | **Fenoy et al.**, Briefings in Bioinformatics 23(4), bbac232, 2022 | ✅ verified |
+| normLev alternatives | **Li Y., Liu B.**, *A Normalized Levenshtein Distance Metric*, **IEEE TPAMI** 29(6), **2007** | ✅ verified |
+| Siamese-for-string-similarity peer | **Vinden N., Foxcroft J., Antonie L.**, *Analysing Siamese Neural Network Architectures for Computing Name Similarity*, **IJPDS**, **2022** | ✅ verified |
+| Learned sequence embeddings | **Corso G. et al.**, *Neural Distance Embeddings for Biological Sequences*, **NeurIPS**, **2021** | ✅ verified |
+| Non-embeddability | **Krauthgamer R., Rabani Y.**, *Improved Lower Bounds for Embeddings into L₁*, **SIAM J. Computing**, 2009 · **Ostrovsky R., Rabani Y.**, *Low distortion embeddings for edit distance*, **JACM**, 2007 | ✅ verified |
+| BLAST | Altschul S. F. et al., *Basic local alignment search tool*, J. Mol. Biol. 215:403–410, 1990 | ⚠️ verify DOI |
+| MMseqs2 | Steinegger M., Söding J., Nature Biotechnology 35:1026–1028, 2017 | ⚠️ verify |
+| **CATH / CATH-S20** *(he asked — slide 17)* | Sillitoe I. et al., *CATH: increased structural coverage of functional space*, Nucleic Acids Research, 2021 | ⚠️ **verify before use** |
+| **3Di alphabet** | van Kempen M. et al., *Fast and accurate protein structure search with Foldseek*, Nature Biotechnology, 2024 | ⚠️ verify |
+| Secondary structure (DSSP) | Kabsch W., Sander C., Biopolymers 22:2577–2637, 1983 | ⚠️ verify |
+| Siamese networks (origin) | Bromley J. et al., *Signature verification using a Siamese time delay neural network*, NIPS, 1993 | ⚠️ verify |
+
+### R3. 🚨 Slide 9 — "Architektur basiert auf dem aus dem Paper, oder? Dann muss da eine Referenz hin, sonst sieht es geklaut aus."
+**THIS ONE I CANNOT ANSWER FOR YOU — AND I WILL NOT GUESS A CITATION.** Inventing a source here would be
+far worse than having none. You need to say where the conv → pool → FC Siamese architecture actually came
+from. Candidates, in order of likelihood — **pick the true one**:
+- the **original base paper** your first notebooks reproduced (`first_experiment_paper_NN.ipynb`,
+  `colab2_recreate_Figure13.ipynb` — whatever paper *that* was reproducing is almost certainly the answer);
+- **CNN-ED** (Dai et al., *Convolutional Embedding for Edit Distance*, SIGIR 2020) — the closest published
+  CNN-embeds-edit-distance architecture;
+- **Bromley et al. 1993** for the Siamese *pattern* itself (this one you can always cite).
+If it is genuinely your own design, **say that on the slide** — "architecture: own design, Siamese pattern
+after Bromley et al. 1993" is a perfectly good answer, and it removes the "geklaut" impression entirely.
+
+### R4. Slide 15 — "Warum diese Normalisierung? Welche Alternativen gibt es?"
+**Why normalize at all:** a raw edit distance of 2 is trivial between two 200-residue proteins and
+catastrophic between two 3-letter strings. Without normalization the target is dominated by length.
+
+**Why *this* one** — `normLev = 1 − d / max(|x|,|y|)`:
+- bounded in **[0, 1]**, so it can be thresholded, binned and compared across alphabets;
+- directly interpretable: **the fraction of the longer sequence that survives unedited**;
+- it is the standard implementation (rapidfuzz `normalized_similarity`), so it is reproducible.
+
+**The alternatives (name them — this is the answer he's fishing for):**
+| alternative | form | why not |
+|---|---|---|
+| sum-normalized | `d / (|x|+|y|)` | halves the scale; less interpretable |
+| alignment-length-normalized | `d / alignment_length` | depends on the alignment, not just the strings |
+| **Marzal & Vidal (1993)** | minimize `d / path_length` over edit paths | expensive; no longer a simple ratio |
+| **Li & Liu (2007), GLD** | `2d / (α(|x|+|y|) + d)` | **the honest catch below** |
+
+**🎯 THE SOPHISTICATED POINT — say this and you win the slide.** Li & Liu (TPAMI 2007) prove that the
+common normalizations — **including `d/max`, i.e. ours** — are **not genuine metrics: they violate the
+triangle inequality.** Their GLD-based form is one that *is* a metric. So:
+> *"I chose `1 − d/max` because it is bounded, interpretable and standard — but it is worth being precise:
+> it is **not** a metric, it fails the triangle inequality. Li and Liu proposed a normalization that is. For
+> ranking and retrieval, which is what I evaluate, this doesn't bite — but it is one more reason not to
+> expect an exact isometric embedding."*
+**This dovetails perfectly with slide 5b**: the target isn't Euclidean *and* isn't even a metric under this
+normalization. Both point at the same conclusion — approximate, rank-based evaluation is the correct frame.
+
+### R5. Slide 17 — CATH_s20 needs a reference
+See R2. And state what **S20** *means* (clustered at 20 % sequence identity) — you need that anyway for the
+AA-column argument.
+
+### R6. Slide 19 — "Wie gross sind die 4 Sets? 4 Verteilungen für Längen, 4 für Buchstabenfrequenzen."
+✅ **BUILT — new colab29 §11d** (`colab29_four_sets.png` + `colab29_four_sets.csv`). One page: for
+**synthetic / AA / SS / 3Di** — set size, length distribution (top row), letter-frequency distribution
+(bottom row), plus **Shannon entropy** of each letter distribution against its uniform maximum.
+
+**What it will show, and why it's a gift rather than a chore:**
+- **Lengths are matched by construction** (all four live in [50, 200]) → length is *not* the confound.
+- **Letters are wildly different**: synthetic is **flat = maximum entropy**; AA and 3Di are skewed; SS uses
+  **3 letters**.
+- ⇒ *The encoder is trained on a maximum-entropy alphabet and evaluated on three highly non-uniform ones —
+  and it still transfers. That is the empirical proof it learned the operation, not the statistics.*
+- **Bonus:** this is the frequency plot that was missing, so it **finally licenses** talking about 3Di's
+  letter skew — a claim that was previously off-limits without exactly this figure.
+
+### R7. "30k is sweetspot? Warum? Daten vorlegen."
+✅ **You already have the data — you just left it in the backup.** `colab30` N-ablation, 3 seeds:
+real-AA **MAP@10** 0.71 (≤10k) → **0.82 (30k)** → 0.89 (100k); **synthetic ρ** 0.78 → **0.83** → 0.87.
+→ 30k = **92 % (MAP) / 96 % (ρ)** of the 100k performance at **⅓ the data**.
+**Promote that figure into the main deck** next to the training-data slide. **Say "diminishing returns /
+compute trade-off", NEVER "plateau"** — and state the caveat: epochs fixed at 30, so larger N also means
+more gradient steps.
+
+### R8. Slide 21 — row order, and "der Aussenseiter ist wahrscheinlich SS, oder?"
+**Row order — make the two tiers visually explicit.** He is right that it is not currently obvious which
+rows are baselines and which are the real comparison. Fix with a separator + a group label:
+
+```
+── CLASSICAL BASELINES ──   (simple → complex)
+   trigram-count
+   Dice
+   length-only
+── LEARNED EMBEDDINGS ──
+   ESM2   (general, not trained for edit distance)
+   SNN    (ours, trained for edit distance)   ← bold / boxed
+```
+Ordering *within* each tier: simple → complex. That answers both of his questions at once (which are
+baselines, and why this order).
+
+**Column order — his question deserves a real answer, and it's a good one:** *it depends on the axis.*
+- By **alphabet**, **SS is the outlier**: 3 letters, where AA and 3Di both have 20.
+- By **data distribution**, **AA is the outlier**: it's the redundancy-reduced control with 5 high-sim pairs.
+> *"Both, on different axes — and that's exactly why the two columns behave the way they do. SS is the
+> alphabet outlier, which is why the k-mer baselines die there. AA is the distribution outlier, which is why
+> it's a control and not a comparison."*
+
+**Recommendation:** keep **AA | SS | 3Di** (AA first = the training alphabet *and* the control, marked as
+such), and just make the AA column's control status visible. Reordering to AA | 3Di | SS to group the
+20-letter alphabets is also defensible — but only if you say why.
 
 ---
 
