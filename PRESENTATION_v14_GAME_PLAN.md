@@ -881,6 +881,8 @@ Put a References slide at the end **and** a small citation under every borrowed 
 | normLev alternatives | **Li Y., Liu B.**, *A Normalized Levenshtein Distance Metric*, **IEEE TPAMI** 29(6), **2007** | ✅ verified |
 | Siamese-for-string-similarity peer | **Vinden N., Foxcroft J., Antonie L.**, *Analysing Siamese Neural Network Architectures for Computing Name Similarity*, **IJPDS**, **2022** | ✅ verified |
 | Learned sequence embeddings | **Corso G. et al.**, *Neural Distance Embeddings for Biological Sequences*, **NeurIPS**, **2021** | ✅ verified |
+| **CNN-ED** (128-d edit-distance embedding — closest architecture peer) | **Dai X., Yan X., Zhou K., Wang Y., Yang H., Cheng J.**, *Convolutional Embedding for Edit Distance*, **SIGIR 2020**, pp. 599–608. doi:10.1145/3397271.3401045 | ✅ verified — **conference, not a journal** |
+| **Adaptive pooling** (validates the AvgPool choice: 1-D adaptive pool over a temporal sequence) | **Abdu-Aguye M. G., Gomaa W., Makihara Y., Yagi Y.**, *Adaptive Pooling Is All You Need: An Empirical Study on Hyperparameter-insensitive Human Action Recognition Using Wearable Sensors*, **IJCNN 2020**. doi:10.1109/IJCNN48605.2020.9207082 | ✅ verified — **conference** |
 | Non-embeddability | **Krauthgamer R., Rabani Y.**, *Improved Lower Bounds for Embeddings into L₁*, **SIAM J. Computing**, 2009 · **Ostrovsky R., Rabani Y.**, *Low distortion embeddings for edit distance*, **JACM**, 2007 | ✅ verified |
 | BLAST | Altschul S. F. et al., *Basic local alignment search tool*, J. Mol. Biol. 215:403–410, 1990 | ⚠️ verify DOI |
 | MMseqs2 | Steinegger M., Söding J., Nature Biotechnology 35:1026–1028, 2017 | ⚠️ verify |
