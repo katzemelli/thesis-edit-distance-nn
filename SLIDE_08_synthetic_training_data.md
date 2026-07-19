@@ -24,7 +24,8 @@ floor) is what pre-defends the AA control column two results-slides later.
 
 **Beat 1 — the design (left).**
 - 20-letter alphabet, **uniform** by construction — letter entropy **4.32 bits = the maximum**
-  (gap 0). *Forces the encoder onto the edit operation, not letter statistics.*
+  (gap 0). *Removes letter-frequency patterns → reduces the encoder's reliance on composition
+  shortcuts, so it leans on edit-similarity structure.*
 - Training uses **30k generated synthetic pairs** (uniform-AA), lengths 41–200 (median 124).
 - ⚠️ **Do NOT write "3,000 seqs → 30k pairs" — that conflates two things.** Training is the 30k
   *generated pairs*. The **3,000-sequence sample** is only the small descriptive set used to *draw
@@ -81,30 +82,33 @@ floor) is what pre-defends the AA control column two results-slides later.
 
 ---
 
-## Stage script (spoken, ~90 s)
+## Stage script (spoken, ~75–90 s)
 
-"The training set is synthetic and uniform, and there's a real theorem behind that choice. If you
-take two *independent* random strings and align them, some letters match purely by chance — and the
-number of chance matches grows with length. So two unrelated strings are never at similarity zero;
-they sit at a **floor**. Chvátal and Sankoff proved this floor exists, and that its height scales
-like one-over-root-alphabet-size: a small alphabet has a *higher* floor, because there are fewer
-letters to disagree on. Now — that theory is stated for the longest common subsequence, and my
-target is Levenshtein, so let me close that gap, because it's exact: the insert-delete edit distance
-is just the two lengths minus twice the LCS, and full Levenshtein sits within a factor of two of
-that. So Levenshtein and LCS are the same alignment quantity up to a constant — the floor, and the
-fact that it depends on alphabet size, both carry straight over. That lines up with my own setup:
-my low-similarity class threshold is 0.30 for the 20-letter amino-acid alphabet but 0.56 for the
-3-letter secondary-structure one. I'm not claiming to have measured the Chvátal–Sankoff constant —
-my generator and normalization aren't that idealized setting — but the direction is exactly what the
-random-string floor predicts, and it's why the two alphabets need different bin thresholds.
+*Logic: controlled design → expected (null) distribution → LCS↔Levenshtein bridge → observed
+distribution → training-size choice. Anchored to the significance lecture's null-distribution concept.*
 
-The *expected* picture, then, is a narrow peak sitting at that floor, and that's exactly the *found*
-distribution: my synthetic scores pile up at the floor and my lowest bin is nearly empty — no amount
-of extra mutation pushes a pair below the floor, the chance matches just get absorbed. Which is the
-whole reason I generate synthetic pairs: it's the only way to fill the range *above* the floor, all
-the way to 1.0, which natural protein data simply doesn't populate. *(If asked about the shape of
-the fluctuations around the floor — that's the Tracy–Widom / random-matrix connection, but only in
-the exactly-solvable models; I use it as context, not as a claim about my scores.)*"
+"The model is trained on synthetic strings from a uniform 20-letter alphabet. That removes natural
+letter-frequency patterns and reduces the encoder's opportunity to solve the task through composition
+shortcuts, so it leans on edit-similarity structure instead.
+
+To read what a score means, recall the **null distribution** from the significance lecture: a
+sequence-comparison score only has meaning relative to what *unrelated* random strings would score.
+And those strings aren't at similarity zero — chance matches put them at a positive baseline. Chvátal
+and Sankoff describe exactly this expected LCS baseline, and where it sits depends on alphabet size:
+fewer symbols mean more chance matches, and therefore a higher floor.
+
+My target is normalized Levenshtein, not LCS — but LCS-distance and Levenshtein are bounded within a
+factor of two of each other, so LCS theory motivates the same qualitative floor for my target; only
+the constant shifts. Related *exactly-solvable* LCS models show Tracy–Widom fluctuations around that
+floor, but I use that only as theoretical context — I do **not** claim my scores follow a Tracy–Widom
+distribution.
+
+The observed synthetic histogram matches that expectation: it peaks near a positive floor and extends
+from there up to one. So the synthetic data gives controlled supervision across the whole usable
+similarity range above chance — which natural protein data doesn't populate.
+
+Finally, the 30,000-pair training set was compute-bounded; the scaling evidence I have suggests
+diminishing, not zero, returns beyond that size."
 
 ---
 

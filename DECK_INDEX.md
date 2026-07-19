@@ -16,7 +16,7 @@ Citations = `REFERENCES_verified.md`. Last updated 2026-07-18.*
 | 4 | String comparison ↔ sequence embeddings | `SLIDE_04_relationship_fenoy.md` | Fenoy Fig 6 (their paper) | id×coverage worked example → **backup**; cite figure as theirs |
 | 5 | Which approaches were used? (4-paper table) | **`SLIDE_v16_literature_comparison.md`** | table (make in Keynote) | Vinden success-metric stays **generic** (not in paper) |
 | 6 | SNNEED + Q1/Q2 + roadmap | `SLIDE_06_snneed_questions.md` | schema (reuse slide-12 art) | don't quantify "beat ESM" yet |
-| 7 | Baselines besides ESM | `SLIDE_07_baselines.md` | none (definitions) | **Dice = 3-gram-based** (not bigram) |
+| 7 | Which baselines do we compare our network against? | `SLIDE_07_baselines.md` | none (definitions) | **Dice = 3-gram-based** (not bigram) |
 | 8 | Synthetic training data (the floor) | `SLIDE_08_synthetic_training_data.md` | uniform-letters, transitions, **score dist** *(exist)* | ⚠️ **colab30 receipt MISSING** → keep 30k qualitative; TW = footnote only; never "3k→30k" |
 | 9 | Test data (CATH-S20, 3 alphabets) | `SLIDE_09_test_data.md` | letter freq + transitions (**3Di big**), overlaid score dist | use **full-pool** (not stratified) dist; remote homology = **motivation only** |
 | 10 | Target function | `SLIDE_10_target_function.md` | none (formula) | `1−d/max` **not a metric**; head discarded at inference |
@@ -26,7 +26,7 @@ Citations = `REFERENCES_verified.md`. Last updated 2026-07-18.*
 | 14 | Correlation SNNEED vs ESM (**scatter**) | `SLIDE_14_scatter_snn_vs_esm.md` | 2×4 predicted-vs-true scatter | add **x-axis label "true normLev"**; tag AA cols |
 | 14b | Retrieval — set-based MAP@10 (**ADDED**) | `SLIDE_14b_map_retrieval.md` | MAP bars (@0.70 + **add @0.90**, CIs) | **AA MAP@0.70 = 0.867 [0.667, 1.000]** — but AA is pair-like (10 queries, median target size 1, no @0.90 queries) → **read AA via hit@10 / control, not headline MAP**; use **hard-neg AUROC**; swap length→**Dice** |
 | 15 | Discussion — perfect EED? + outlook | `SLIDE_15_discussion.md` | none (theory) | keep **two n's distinct**; NeuroSEED **~22%** (not 38%) |
-| Refs | References slide (prof R2 asked) | `REFERENCES_verified.md` | — | format `Nachname et al., Title, Journal, Year.` |
+| Refs | References slide (prof R2 asked) — **topic-ordered** | `SLIDE_refs_references.md` (source: `REFERENCES_verified.md`) | — | 25 refs / 7 topic groups; split 2-way if too dense |
 
 ---
 

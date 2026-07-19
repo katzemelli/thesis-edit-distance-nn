@@ -1,4 +1,5 @@
-# Slide 7 — Baselines besides ESM
+# Slide 7 — Which baselines do we compare our network against?
+*(working title "Baselines besides ESM")*
 
 *Build doc. Prof's layout: explain ESM, length, trigram, Dice. Definitions verified from
 `colab29` (cells ~412–488). **Correction locked:** both trigram AND Dice are 3-gram measures.*
