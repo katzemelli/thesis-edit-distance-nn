@@ -46,13 +46,16 @@ at edit distance."
 
 "First, does this relationship even exist for proteins? The classical tool here is BLAST —
 local alignment giving percent identity and query coverage — scaled to billions of sequences
-by MMseqs2. On the embedding side, ESM is a masked language model; crucially, it was *never*
-trained on a similarity label. Fenoy and colleagues, in 2022, compared ESM's cosine
-similarity against BLASTp identity and found a Spearman rank correlation of about 0.66. So
-the answer is yes — a rank correlation of roughly 0.66 — but notice it's partial, and it
-comes from a model that was never asked to measure edit distance. That gap is my opening.
-*(Careful: 0.66 is a Spearman rho, not "66 percent" — say the correlation value, not a
-percentage; the deck title still says '66%' and should be changed to ≈ 0.66.)*"
+by MMseqs2. On the embedding side, ESM is a protein language model: it was trained on natural
+amino-acid sequences with masked-language modelling — hide some residues, predict them from
+context — *not* to measure edit distance or detect homology. Any similarity structure in its
+embeddings emerged indirectly, from learning sequence patterns. Fenoy and colleagues, in 2022,
+compared ESM's cosine similarity against BLASTp identity and found a Spearman rank correlation
+of about 0.66. So the answer is yes — a rank correlation of roughly 0.66 — but notice it's
+partial, and it comes from a model that was never asked to measure edit distance. That gap is
+my opening. *(Careful on two points: 0.66 is a Spearman rho, not "66 percent" — the deck title
+still says '66%' and should be changed to ≈ 0.66; and Fenoy evaluated ESM-**1b**, whereas my
+baseline is ESM-**2**.)*"
 
 ---
 
@@ -102,11 +105,16 @@ out to be the difference between useful and anti-correlated."
 natural letter-frequency patterns and reduces the encoder's opportunity to solve the task
 through composition shortcuts, so it leans on edit-similarity structure instead.
 
-To read what a score *means*, recall the null distribution from the significance lecture: a
-sequence-comparison score only has meaning relative to what *unrelated* random strings would
-score. And those aren't at similarity zero — chance matches put them at a positive baseline.
-Chvátal and Sankoff describe exactly this expected LCS baseline, and where it sits depends on
-alphabet size: fewer symbols mean more chance matches, and therefore a higher floor.
+Now, to *interpret* those scores, recall the null distribution from the significance lecture.
+Even two unrelated random strings share some symbols by chance, and because alignment selects
+the best available matches, their expected similarity sits *above* zero. That chance-similarity
+level depends on the alphabet: with fewer possible symbols, accidental matches are more common,
+so the baseline is higher. The point isn't that a score has no meaning on its own — it has an
+exact definition — it's that how *surprising* or informative it is needs this reference: a
+normLev of 0.4 sounds moderately similar, but if unrelated random strings from that alphabet
+already score around there, it carries little similarity beyond chance. Chvátal and Sankoff
+formalized exactly this for the longest common subsequence: the expected LCS of two random
+strings grows with their length, with an alphabet-dependent proportionality constant.
 
 My target is normalized Levenshtein, not LCS — but LCS-distance and Levenshtein are bounded
 within a factor of two of each other, so LCS theory motivates the same qualitative floor for
@@ -398,9 +406,13 @@ set-based retrieval are genuinely different questions — that's exactly why I r
 metrics, and closing that blur is what a CNN-ED-style loss in the outlook would target.
 
 **"Isn't ESM just the wrong tool — unfair comparison?"**
-That's partly the point. ESM is task-agnostic — never trained on edit distance — and it's the
-strongest general protein model, so it's the honest bar for 'do you actually need a
-task-specific model?' I introduce it as strong-but-general, not a strawman.
+That's partly the point. ESM is a masked language model trained on natural amino-acid sequences
+to predict masked residues — never trained on edit distance, sequence identity, or homology.
+Any similarity structure is indirect. And it's the strongest general protein model, so it's the
+honest bar for 'do you actually need a task-specific model?' I introduce it as strong-but-
+general, not a strawman. (One precision: Fenoy's 0.66 was ESM-1b vs BLASTp local identity; my
+baseline is ESM-2 vs global normalized Levenshtein — same qualitative saturation, different
+setup.)
 
 **"If exact Euclidean embedding is impossible, what's the contribution?"**
 Exactness was never the goal — it's provably impossible, distortion grows with length
