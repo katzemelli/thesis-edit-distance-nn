@@ -1,12 +1,23 @@
+# --- Python / env ---
 venv/
 __pycache__/
 *.pyc
 .ipynb_checkpoints/
+
+# --- caches & deps ---
 bench_cache/
-prompts/
-/outputs/
-/tmp/
 node_modules/
 package.json
+
+# --- not committed: working dirs & generated artifacts ---
+# scripts/ also covers scripts/helper_fn_for_presentation
+scripts/
+helper_fn_for_presentation/
+presentation_material/
+prompts/
+output/
+outputs/
+tmp/
+
+# --- OS ---
 .DS_Store
-scripts/audit_benchmark_headers.py
