@@ -37,7 +37,52 @@ identifiable against mid/low-similarity ones.
 3. **Recorded as architecture of record — `ARCHITECTURE.md`** (decision table, and the section
    "*Why pure CE works for retrieval (the colab16 surprise)*").
 
-### The evidence (verified — `BENCHMARKS.md` Table 2)
+### The evidence — controlled ablation on the modern metric suite (primary)
+
+Both architectures trained on the **identical 30k synthetic-AA pair set** (same seed, same generator,
+same schedule) — so the only differences are the two colab15→colab16 changes (pooling + the CE head) —
+then evaluated with the colab29b protocol (per-feed exhaustive-Levenshtein oracle, stratified Spearman,
+full-pool AUROC, MAP@10). SNNEED-only. Script: `run_arch_comparison_local.py` → `arch_comparison_local.csv`.
+
+**Read the columns as one baseline + three transfers.** The encoder is trained on *synthetic* AA, so:
+- **synth** = *in-distribution baseline* — same generator as training; this is the column that must work.
+- **AA** = synthetic→natural transfer (same alphabet, natural CATH distribution).
+- **SS / 3Di** = cross-alphabet transfer (frozen AA encoder, unseen alphabet).
+
+| Metric (feed) | colab15 regression (MSE, no head/pool) | colab16 classifier (CE + pool) | Δ |
+|---|---|---|---|
+| **Spearman — synth** (baseline) | 0.850 | **0.923** | +0.073 |
+| Spearman — AA (transfer) | **−0.126** | **0.091** | +0.217 |
+| Spearman — SS (transfer) | 0.955 | 0.968 | +0.013 |
+| Spearman — 3Di (transfer) | 0.841 | 0.950 | +0.109 |
+| **AUROC(hard) — synth** (baseline) | 0.884 | **0.958** | +0.074 |
+| AUROC(hard) — AA (transfer) | 0.872 | **0.997** | +0.125 |
+| AUROC(hard) — SS (transfer) | 0.976 | 0.982 | +0.006 |
+| AUROC(hard) — 3Di (transfer) | 0.974 | 0.992 | +0.019 |
+| **MAP@10 — synth** (baseline) | 0.693 | **0.977** | +0.284 |
+| MAP@10 — AA (transfer) | 0.453 | **0.862** | +0.409 |
+| MAP@10 — SS (transfer) | 0.363 | 0.430 | +0.068 |
+| MAP@10 — 3Di (transfer) | 0.452 | 0.503 | +0.051 |
+
+**How to read it.** The classifier wins on *every* metric and *every* feed. The story is sharpest where
+it matters most — the **in-distribution baseline (synth)** and the **same-alphabet transfer (AA)**:
+- **synth MAP@10 0.69 → 0.98**: even in-distribution, the regression readout leaves a third of retrieval
+  on the table; the head essentially solves it. This is the cleanest, best-powered number (1,203 high-sim
+  synth pairs).
+- **AA MAP@10 0.45 → 0.86** and **AA Spearman −0.13 → +0.09**: the regression predictions are so
+  compressed they *anti-correlate* with true order on the natural AA distribution — the collapse made
+  quantitative. The head roughly doubles retrieval.
+- **Cross-alphabet transfer (SS/3Di)** improves too but by less, because *both* architectures transfer
+  through the same frozen AA encoder — the head's benefit is largest where the signal is in the training
+  alphabet, and cross-rep is bounded by the frequency-mismatch ceiling documented elsewhere.
+
+**Caveats for honesty.** Natural-AA has only **5** high-sim pairs ≥0.70 in this pool (matches the "~6 AA
+pairs" data-census fact), so AA MAP@10/AUROC ride on ~10 directed queries — the well-powered mirror is the
+synth baseline. The classifier column reproduces the deck colab29b SNN within noise (Spearman AA 0.091 vs
+deck 0.081; AUROC-hard AA 0.997 vs 0.991; 3Di MAP 0.503 vs 0.488; SS MAP 0.430 vs 0.440), which is what
+licenses trusting the regression column on the same footing.
+
+### The original iteration record (`BENCHMARKS.md` Table 2, for the audit trail)
 
 | Metric | colab15 — band-weighted MSE (regression) | colab16 K=16 — 3-bin CE (classifier) |
 |---|---|---|
@@ -133,6 +178,10 @@ value-fidelity head layered on top of the retrieval-grade encoder.
   retrieval, not a calibrated distance regressor.
 
 ### Sources to cite
+- **Controlled ablation (primary numbers above):** `run_arch_comparison_local.py` →
+  `arch_comparison_local.csv` — both architectures trained on one shared 30k synthetic-AA set, evaluated
+  on the colab29b protocol (Spearman/AUROC/MAP@10, SNNEED-only). Classifier column cross-validates the
+  deck colab29b SNN.
 - `notebooks/colab14_high_sim_sharpening.ipynb`, `notebooks/colab15_natural_pair_eval.ipynb`,
   `notebooks/colab16_classification_head.ipynb` (+ `colab16b`), commit `7f238c8`.
 - `BENCHMARKS.md` — Table 2 (high-sim sharpness), "Reading colab15", "Reading colab16".

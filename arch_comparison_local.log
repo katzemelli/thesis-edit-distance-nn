@@ -1,0 +1,54 @@
+device: mps
+building shared 30k synthetic AA training pairs...
+  [reg] epoch 1/30 loss 0.0788
+  [reg] epoch 10/30 loss 0.0031
+  [reg] epoch 20/30 loss 0.0016
+  [reg] epoch 30/30 loss 0.0012
+  [reg] trained in 198.0s
+  [clf] epoch 1/30 loss 0.6081
+  [clf] epoch 10/30 loss 0.0023
+  [clf] epoch 20/30 loss 0.0010
+  [clf] epoch 30/30 loss 0.0011
+  [clf] trained in 370.1s
+  pool AA   = 10501
+  pool SS   = 10497
+  pool 3Di  = 10501
+  eval[AA]: pos_pairs=5  (33.3s)
+  eval[SS]: pos_pairs=623077  (36.3s)
+  eval[3Di]: pos_pairs=6009  (36.1s)
+building synth feed...
+  eval[synth]: pos_pairs=1203  (18.6s)
+
+==============================================================================
+ARCHITECTURE COMPARISON (locally trained, same 30k pairs) — SNNEED only
+==============================================================================
+
+[Spearman]
+       colab15_regression  colab16_classifier  Δ (clf − reg)
+synth               0.850               0.923          0.073
+3Di                 0.841               0.950          0.109
+SS                  0.955               0.968          0.013
+AA                 -0.126               0.091          0.217
+
+[AUROC_hard]
+       colab15_regression  colab16_classifier  Δ (clf − reg)
+synth               0.884               0.958          0.074
+3Di                 0.974               0.992          0.019
+SS                  0.976               0.982          0.006
+AA                  0.872               0.997          0.125
+
+[AUROC_rand]
+       colab15_regression  colab16_classifier  Δ (clf − reg)
+synth               0.922               0.972          0.050
+3Di                 0.980               0.998          0.018
+SS                  0.980               0.985          0.005
+AA                  0.902               1.000          0.098
+
+[MAP@10]
+       colab15_regression  colab16_classifier  Δ (clf − reg)
+synth               0.693               0.977          0.284
+3Di                 0.452               0.503          0.051
+SS                  0.363               0.430          0.068
+AA                  0.453               0.862          0.409
+
+Saved arch_comparison_local.csv

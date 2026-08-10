@@ -56,11 +56,11 @@ AUROC_HARD_TAB = pd.DataFrame({
 #  3Di:     0.49  0.28  0.24
 #  SS:      0.44  0.22  0.02
 #  AA:      0.91  0.86  1.00
-MAP_TAB = pd.DataFrame({
-    "synth": {"Dice": np.nan, "ESM2": np.nan, "SNN": np.nan},   # FILL from colab29b_synth_map_cell.py run (renders "—" until then)
-    "3Di": {"Dice": 0.240, "ESM2": 0.283, "SNN": 0.488},
-    "SS":  {"Dice": 0.022, "ESM2": 0.218, "SNN": 0.440},   # 0.022 -> displays 0.02 (matches bar); 0.025 would show 0.03
-    "AA":  {"Dice": 1.000, "ESM2": 0.858, "SNN": 0.911},
+MAP_TAB = pd.DataFrame({   # from colab29b synth-MAP run (synth column added leftmost)
+    "synth": {"Dice": 1.000, "ESM2": 0.604, "SNN": 0.975},
+    "3Di":   {"Dice": 0.239, "ESM2": 0.283, "SNN": 0.484},
+    "SS":    {"Dice": 0.022, "ESM2": 0.218, "SNN": 0.445},
+    "AA":    {"Dice": 1.000, "ESM2": 0.858, "SNN": 0.650},   # AA rides on ~5 high-sim pairs -> noisy run-to-run (deck had 0.911)
 })
 
 if AUROC_VARIANT.lower() == "hard":
@@ -161,8 +161,8 @@ heatmap(
     fname=f"consolidated_auroc_{AUROC_VARIANT.lower()}.png",
     cbar_label="AUROC",
     feeds=METRIC_FEEDS,
-    scale="chance_white",   # blue-white-red, white at chance (0.5)
-    txt_gap=0.30,           # white text only past 0.8 / below 0.2
+    scale="zero_white",     # white at 0, progressively darker red toward 1
+    txt_gap=0.55,
 )
 
 # --------------------------------------------------------------------------------------
@@ -174,6 +174,6 @@ heatmap(
     fname="consolidated_map10.png",
     cbar_label="MAP@10",
     feeds=MAP_FEEDS,
-    scale="chance_white",   # same blue-white-red scale as AUROC, for visual consistency
-    txt_gap=0.30,
+    scale="zero_white",     # white at 0, progressively darker red toward 1
+    txt_gap=0.55,
 )
