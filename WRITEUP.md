@@ -7,16 +7,46 @@
 
 ---
 
-## Finding 1 — Why a classification head: the regression-to-the-mean collapse, and how discretising the target escaped it
+## Finding 1 — The real driver was adaptive pooling, not the classifier head (CORRECTED 2026-08-11)
 
-### One-sentence version
-A **regression objective** (band-weighted MSE) applied to a **parameter-free distance readout**
-(`sim = 1 − ‖e_a − e_b‖/2`, no trainable head — only the encoder learns) **collapsed its predictions
-toward the mean of the training-label distribution**, destroying the high-similarity
-resolution the retrieval task actually needs; replacing it with a **banded cross-entropy classifier**
-broke that collapse and lifted AA retrieval from 6/10 to 10/10 hits@10 — the design principle being
-*useful > perfect*: we do not need the exact distance, we need high-similarity pairs to be cleanly
-identifiable against mid/low-similarity ones.
+> **This finding was previously mis-attributed.** The earlier version credited the 3-bin classifier for the
+> colab15→colab16 jump. A controlled **2×2 ablation** (`notebooks/colab32_pool_objective_2x2.ipynb`; 30k
+> synthetic-AA pairs, 3 seeds) that varies **pooling** and **objective** *independently* shows the gain is
+> almost entirely **`AdaptiveAvgPool1d(K=16)`**. Controlling for pooling, distance-regression and the
+> classifier are **statistically indistinguishable**; the classifier confers **no** retrieval advantage and
+> slightly hurts rank fidelity. The original comparison was **confounded** — it changed pooling *and* the
+> objective at once, then compared the far corners. **Consequence:** the deployed model pivots to
+> **regression + pooling (reg·pool)**, and the "classifier escapes the collapse" story is retired.
+
+### One-sentence version (corrected)
+The colab15 failure — predictions compressing toward the training-label mean, destroying high-similarity
+resolution (AA Spearman ≈ −0.14) — was a pathology of the **flatten encoder** (position-rigidity →
+representational aliasing), **not** of the regression objective. Adding **adaptive pooling** de-aliases the
+representation and fixes it *under either objective*; the 3-bin classifier is an unnecessary surrogate that
+adds nothing once pooling is present. The design principle is unchanged (**useful > perfect** — a
+metric-preserving embedding for k-NN), but the load-bearing component is the **pooling**, and the deployed
+objective is now **regression**, whose readout `1 − ‖e_a − e_b‖/2` is directly aligned with the retrieval score.
+
+### The evidence — the 2×2 that de-confounds it (primary, 2026-08-11)
+All four cells trained on the **same 30k synthetic-AA pairs** (identical data within a seed, 3 seeds),
+evaluated identically (encoder → cosine) on synth / 3Di / SS / AA. Source: `notebooks/colab32_pool_objective_2x2.ipynb`.
+
+- **Objective effect (reg→clf) *with pooling on* (`obj_in_pool`): ≈ 0, slightly negative on ranking** —
+  Spearman synth −0.00 / 3Di −0.05 / SS −0.01 / AA −0.09; MAP@10 synth +0.01 / 3Di −0.01 / SS +0.01 / AA −0.08.
+  The classifier adds nothing once pooling is present.
+- **Pooling effect *within each objective*: large and positive** — e.g. MAP@10 reg·noPool→reg·pool
+  synth 0.686→0.967, AA 0.421→0.942; Spearman AA −0.142→+0.175. Pooling is the lever.
+- **reg·pool ≈ clf·pool (SNNEED) on every feed/metric, reg·pool nominally winning 3Di and AA** (MAP@10 3Di
+  0.500 vs 0.492, AA 0.942 vs 0.867 — within 3-seed noise, so the honest claim is *no classifier advantage*,
+  not *regression wins*). **The classifier *without* pooling is the worst cell everywhere** (`obj_in_noPool`
+  robustly negative): CE actively hurts without pooling.
+
+**Why the old story looked convincing:** `run_arch_comparison_local.py`, the table below, and deck slide 36
+all compare the *confounded diagonal* `reg·noPool` vs `clf·pool` — a large jump credited to the classifier
+that the 2×2 shows was pooling in disguise. (Codex flagged the confound; the 2×2 confirmed it inverts the
+conclusion.) The reframed story is *more* coherent: it matches the "representational aliasing" mechanism this
+doc already identified, and the value-fidelity ceiling below becomes an argument *for* reg·pool, not a
+limitation to apologise for.
 
 ### Where the decision was made (citable trail)
 1. **Framing pivot — `notebooks/colab14_high_sim_sharpening.ipynb` (intro cell).** The target is
@@ -37,10 +67,15 @@ identifiable against mid/low-similarity ones.
 3. **Recorded as architecture of record — `ARCHITECTURE.md`** (decision table, and the section
    "*Why pure CE works for retrieval (the colab16 surprise)*").
 
-### The evidence — controlled ablation on the modern metric suite (primary)
+### The evidence — controlled ablation on the modern metric suite (SUPERSEDED — confounded diagonal)
+
+> ⚠️ **Confounded — kept for the audit trail only.** This compares `reg·noPool` (colab15) against
+> `clf·pool` (colab16), which changes *both* pooling and the objective at once. The corrected attribution is
+> the 2×2 above: the lift is pooling, not the classifier. Read the Δ column as "the combined revision," never
+> as "the classifier."
 
 Both architectures trained on the **identical 30k synthetic-AA pair set** (same seed, same generator,
-same schedule) — so the only differences are the two colab15→colab16 changes (pooling + the CE head) —
+same schedule) — so the differences are the two colab15→colab16 changes (pooling + the CE head) **together** —
 then evaluated with the colab29b protocol (per-feed exhaustive-Levenshtein oracle, stratified Spearman,
 full-pool AUROC, MAP@10). SNNEED-only. Script: `run_arch_comparison_local.py` → `arch_comparison_local.csv`.
 
@@ -166,16 +201,19 @@ saturates and cannot resolve 0.75 from 0.95. Post-hoc calibration (isotonic, uni
 and it is exactly what motivates the outlook: a CNN-ED-style (Dai et al., SIGIR 2020) continuous
 value-fidelity head layered on top of the retrieval-grade encoder.
 
-### Suggested thesis framing
-- **Section**: architecture / objective design (near the encoder description), or a dedicated
-  "objective design" subsection since the finding is about the *loss*, not the *layers*.
-- **Narrative arc**: (1) continuous regression is the obvious choice → (2) it collapses to the label
-  mean, killing high-sim resolution → (3) this is not fixable by more data or a better optimiser
-  (theory + Ohtomo) → (4) discretising the target into ordinal bands is well-conditioned and the
-  encoder geometry supplies the within-band order retrieval needs → (5) honest residual: top-end value
-  fidelity is capped, which the outlook addresses.
+### Suggested thesis framing (corrected 2026-08-11)
+- **Section**: architecture / representation design — the finding is about the *layers* (pooling), **not**
+  the *loss*. The objective is a secondary, near-neutral choice.
+- **Narrative arc**: (1) the natural first design (flatten encoder + distance regression) collapses toward
+  the label mean, killing high-sim resolution (AA Spearman ≈ −0.14) → (2) diagnosis: **representational
+  aliasing** from the position-rigid Flatten+Linear, not the objective (theory + Ohtomo's optimisation
+  collapse are about aliasing/local solutions) → (3) **adaptive pooling** de-aliases the representation and
+  fixes it *under either objective* (the 2×2) → (4) the objective (regression vs 3-bin CE) is
+  near-neutral once pooling is present, so we deploy the **simpler, aligned** one: **regression**, whose
+  `1−‖Δ‖/2` readout *is* the retrieval score → (5) bonus: the continuous readout also gives top-end **value
+  fidelity** the 3-bin head structurally cannot (see the ceiling section — now an argument *for* reg·pool).
 - **Tagline**: *useful > perfect* — the deployable object is a metric-preserving embedding for k-NN
-  retrieval, not a calibrated distance regressor.
+  retrieval; **the pooling makes it work, the regression objective keeps it aligned and calibrated-ish.**
 
 ### Sources to cite
 - **Controlled ablation (primary numbers above):** `run_arch_comparison_local.py` →
