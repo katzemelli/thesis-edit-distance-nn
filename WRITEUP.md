@@ -40,6 +40,12 @@ evaluated identically (encoder → cosine) on synth / 3Di / SS / AA. Source: `no
   0.500 vs 0.492, AA 0.942 vs 0.867 — within 3-seed noise, so the honest claim is *no classifier advantage*,
   not *regression wins*). **The classifier *without* pooling is the worst cell everywhere** (`obj_in_noPool`
   robustly negative): CE actively hurts without pooling.
+- **Value fidelity — reg·pool wins on high-sim (the argument *for* the pivot):** RMSE(pred, normLev) on
+  ≥0.70 pairs is lower for reg·pool on **every** feed — synth 0.108 vs 0.122, 3Di 0.075 vs 0.096,
+  **SS 0.061 vs 0.123 (~2×)**, AA 0.115 vs 0.135 (colab32, 3 seeds). The classifier's `E[bin midpoint]`
+  structurally saturates at 0.85 and cannot resolve near-1.0 pairs, so the gap is largest on SS where
+  high-sim pairs are dense. reg·pool's `1−‖Δ‖/2` reaches 1.0, giving calibrated resolution the 3-bin head
+  cannot — this folds the value-fidelity *outlook* into the deployed model.
 
 **Why the old story looked convincing:** `run_arch_comparison_local.py`, the table below, and deck slide 36
 all compare the *confounded diagonal* `reg·noPool` vs `clf·pool` — a large jump credited to the classifier
