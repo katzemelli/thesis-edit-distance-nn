@@ -333,6 +333,47 @@ remains a live hypothesis on its own merits — never tested — and is arm 3 (`
 (`reg-soft`) of colab34. Arm 4's weights `0.8 / 1.5 / 2.0` are colab14's own suggested fix, recorded in
 that notebook in May and never run.
 
+### 2026-08-13 — colab34 RAN. Both hypotheses refuted; colab33 is void.
+
+**The deck was right; colab33 was the broken run.** colab34's `clf-pool` reproduces colab29b within seed
+noise (synth 0.923 / 3Di 0.924 / SS 0.947 / AA 0.044 vs deck 0.93 / 0.93 / 0.97 / 0.08), and the AA oracle
+is healthy (10 queries, 5 positive pairs — matching the data census). colab33's 3Di ρ = 0.33 and its blank
+AA AUROC/MAP@10 were a **partial oracle build**: an incomplete oracle removes the high-similarity pairs,
+which depresses Spearman *and* blanks AUROC/MAP together. **`colab33_metrics.csv` and
+`colab33_regpool_vs_baselines.png` are void — do not cite them.** The protocol-divergence concern raised in
+the previous addendum is withdrawn: there is no divergence, only a failed run.
+
+**Q-A — "classifier helps ranking" (Melissa's hypothesis): REFUTED.** `clf − reg-band` Spearman was
++0.001 / −0.028 / −0.010 / **−0.124** (synth / 3Di / SS / AA), replicating colab32's independently measured
+−0.00 / −0.05 / −0.01 / −0.09. Regression is equal or better everywhere. The only effect surviving seed
+noise is AA, and it favours regression — per-seed clf `0.00 / −0.00 / 0.13` vs reg `0.19 / 0.17 / 0.15`,
+non-overlapping ranges. RMSE replicates colab32 to three decimals (SS 0.060 vs 0.123).
+
+**Q-B — "band weighting costs rank fidelity" (Claude's hypothesis): REFUTED, and for a better reason.**
+`reg-flat − reg-band` was +0.003 / −0.002 / +0.005 / +0.021 — all noise. The proposed mechanism is in fact
+backwards: regression has *better* far-band Spearman than the classifier (3Di 0.558 vs 0.486, SS 0.702 vs
+0.618) despite being trained to down-weight that band. **The cause is that the far band contains 5 of
+30,000 training pairs** (training log: `far=5 mid=19013 high=10982`). The 20-letter chance floor (~0.28)
+makes it nearly impossible to sample below 0.30, so `w_far = 0.5` has been applied to 5 examples since
+colab14. The weighting question was unanswerable, not answered.
+
+Two consequences worth writing into the thesis:
+- **The 3-bin classifier was effectively 2-bin** — 5 training examples in class 0. That is a direct answer
+  to Q6 ("how would numbers scale when we increase classes?"): this construction cannot populate the
+  classes it declares.
+- The eval feeds carry ~1,200 far pairs each against 5 in training, and the encoder still reaches
+  ρ = 0.56–0.70 in that band. That is an unclaimed transfer result.
+
+**Decision: deploy `reg-flat`.** Not because it measures better — the deltas are within noise — but
+because `reg-band` requires defending three constants, one of which provably touches 5 of 30,000 pairs.
+The deployed model is now: adaptive-pooling encoder + **plain unweighted MSE** on `1 − ‖Δ‖/2`, no head, no
+bins, no weights. Every removed knob has an ablation showing removal cost nothing.
+
+**Correction to the 2026-08-13 answer for C2.16 (the `n = 5` disclaimer).** The original wording — "the AA
+column of all three heatmaps rides on 5 high-sim pairs" — is **wrong for Spearman**. AA Spearman is
+computed on ~1,216 stratified pairs and is well powered; it is low because ~1,200 of them are far pairs.
+The `n = 5` disclaimer applies to **AUROC, MAP@10 and RMSE only**.
+
 ### 2026-08-13 — provenance gaps found while planning the Methods chapter
 
 Recorded here because they block the "nackte Fakten" Methods chapter, not because the room raised them:
