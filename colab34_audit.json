@@ -1,0 +1,42 @@
+{
+  "synth": {
+    "pool": 7296,
+    "queries_at_070": 2410,
+    "oracle_pos_pairs": 1205,
+    "strat_n": 3648,
+    "strat_high": 1205,
+    "strat_far": 848,
+    "strat_mid": 1595,
+    "strat_median": 0.5394736842105263
+  },
+  "3Di": {
+    "pool": 10501,
+    "queries_at_070": 347,
+    "oracle_pos_pairs": 6009,
+    "strat_n": 3692,
+    "strat_high": 1224,
+    "strat_far": 1200,
+    "strat_mid": 1268,
+    "strat_median": 0.440125786163522
+  },
+  "SS": {
+    "pool": 10497,
+    "queries_at_070": 10002,
+    "oracle_pos_pairs": 623077,
+    "strat_n": 4000,
+    "strat_high": 1425,
+    "strat_far": 1200,
+    "strat_mid": 1375,
+    "strat_median": 0.4986910994764398
+  },
+  "AA": {
+    "pool": 10501,
+    "queries_at_070": 10,
+    "oracle_pos_pairs": 5,
+    "strat_n": 1216,
+    "strat_high": 5,
+    "strat_far": 1200,
+    "strat_mid": 11,
+    "strat_median": 0.18120805369127513
+  }
+}

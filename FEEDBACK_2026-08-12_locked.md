@@ -390,3 +390,31 @@ Recorded here because they block the "nackte Fakten" Methods chapter, not becaus
    Methods, not an experiment diary" and §4.2 a five-sentence *rationale* pattern per decision — which is
    exactly the Narrativ that "einfach nur nackte Fakten … keine Narrativ-details" excludes. The rationale
    content should move to Results/Discussion.
+
+### 2026-08-18 — parameter count correction
+
+`FEEDBACK_2026-08-12_locked.md` describes SNNEED as having approximately 0.3M parameters. The implemented
+encoder has exactly **141,184 trainable parameters (~0.14M)**. This is a documentation correction only; the
+architecture, trained models, and reported results are unchanged.
+
+Breakdown (verified against `colab35_final_vs_baselines.ipynb` and reproduced by `colab36`):
+`Embedding(21×32)` 672 · `Conv1d(32→32, k=3)` 3,104 · `Conv1d(32→64, k=3)` 6,208 ·
+`Linear(1024→128)` 131,200 → **141,184**.
+
+The same "~300k" figure appears in the §3 contribution bullet of this file, in the introductory markdown of
+`notebooks/colab35_final_vs_baselines.ipynb`, and on the deck. All three should read ~0.14M / 141,184. Note
+this makes the ESM-2 contrast *stronger*, not weaker: ~248× fewer parameters than `esm2_t12_35M`, not ~117×.
+
+### 2026-08-18 — tie-break dependence in Dice MAP@10 (raised by colab36 review)
+
+`colab36`'s length-ratio baseline exposed a scoring pathology that also applies to a number already in the
+record. Dice on SS observes **19 distinct trigrams across 10,497 sequences**, so set overlap is near-total
+and a large fraction of any query's candidate ranking is one enormous tie group. `map10` resolves ties by
+`np.argpartition`, which returns whichever tied element the partition happened to touch — an artefact of
+array order, not a measurement.
+
+**Reported SS Dice MAP@10 = 0.022 should therefore be read as tie-break-arbitrary.** The substantive
+conclusion is unaffected — indeed it is the conclusion (*the ranking is noise*) — but the specific number
+should carry the caveat, or be re-reported as a mean over randomised tie-breaks if colab35 is re-run. The
+same applies in principle to Dice on any feed with a collapsed feature space; SNNEED and ESM-2 scores are
+continuous cosines and do not tie in practice.

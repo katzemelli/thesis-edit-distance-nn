@@ -1,0 +1,18 @@
+{
+  "captured_utc": "2026-08-13T14:49:14Z",
+  "python": "3.12.13",
+  "platform": "Linux-6.6.122+-x86_64-with-glibc2.35",
+  "torch": "2.11.0+cu128",
+  "numpy": "2.0.2",
+  "pandas": "2.2.2",
+  "scipy": "1.16.3",
+  "sklearn": "1.6.1",
+  "rapidfuzz": "3.14.5",
+  "matplotlib": "3.10.0",
+  "cuda_available": true,
+  "cuda_device": "Tesla T4",
+  "cuda_version": "12.8",
+  "git_commit": "48291109b69801c09596709985e73913e8001b29",
+  "cath_release": "TODO \u2014 record exact CATH release, S20 file name, and download date",
+  "3di_source": "TODO \u2014 record Foldseek version used to generate 3Di strings"
+}
