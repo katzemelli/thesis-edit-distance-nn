@@ -26,7 +26,7 @@ REGISTER — Introduction, not Methods. Unlike the Methods chapter (which my sup
 ruled must be "einfach nur nackte Fakten"), the Introduction IS allowed to motivate,
 frame and argue. But every number and citation in it has to survive fact-checking.
 
-YOUR ROLE: I write the prose. You critique, fact-check, and patch inline while
+YOUR ROLE: I write the prose. You construct a frame, critique, fact-check, and patch inline while
 preserving my voice. Don't ghost-write or rewrite wholesale. If you catch me
 over-claiming, say so — the talk feedback was largely about over-claiming.
 

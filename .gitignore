@@ -19,5 +19,10 @@ output/
 outputs/
 tmp/
 
+# --- thesis LaTeX source ---
+# Case matters on Linux: the directory is "Latex_write_up". The old lowercase
+# entry only matched because macOS is case-insensitive.
+Latex_write_up/
+
 # --- OS ---
 .DS_Store
