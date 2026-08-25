@@ -1,0 +1,129 @@
+{
+  "collections": {
+    "Synth": 60000,
+    "AA": 10501,
+    "3Di": 10501,
+    "SS": 10497
+  },
+  "synth_eval_collection": 7296,
+  "medians": {
+    "Synth Train": 0.6186,
+    "Synth Eval": 0.5116,
+    "Synth Eval (balanced)": 0.5395,
+    "AA": 0.1976,
+    "SS": 0.4377,
+    "3Di": 0.2375
+  },
+  "score_population": {
+    "Synth Train": {
+      "n_pairs": 30000,
+      "exact": true,
+      "population": "generated pairs"
+    },
+    "Synth Eval": {
+      "n_pairs": 28000,
+      "exact": true,
+      "population": "generated pairs"
+    },
+    "Synth Eval (balanced)": {
+      "n_pairs": 3648,
+      "exact": true,
+      "population": "generated pairs"
+    },
+    "AA": {
+      "n_pairs": 55130250,
+      "exact": true,
+      "population": "all pairs"
+    },
+    "SS": {
+      "n_pairs": 55088256,
+      "exact": true,
+      "population": "all pairs"
+    },
+    "3Di": {
+      "n_pairs": 55130250,
+      "exact": true,
+      "population": "all pairs"
+    }
+  },
+  "symbol_statistics": [
+    {
+      "series": "Synth",
+      "alphabet_size": 20,
+      "sequences": 60000,
+      "symbols": 7485380,
+      "entropy_bits": 4.322,
+      "max_entropy_bits": 4.322,
+      "normalised_entropy": 1.0,
+      "effective_alphabet": 20.0,
+      "top5_share": 0.251,
+      "most_frequent": "M",
+      "most_frequent_share": 0.05
+    },
+    {
+      "series": "AA",
+      "alphabet_size": 20,
+      "sequences": 10501,
+      "symbols": 1229882,
+      "entropy_bits": 4.162,
+      "max_entropy_bits": 4.322,
+      "normalised_entropy": 0.963,
+      "effective_alphabet": 17.91,
+      "top5_share": 0.388,
+      "most_frequent": "L",
+      "most_frequent_share": 0.098
+    },
+    {
+      "series": "3Di",
+      "alphabet_size": 20,
+      "sequences": 10501,
+      "symbols": 1229782,
+      "entropy_bits": 3.8,
+      "max_entropy_bits": 4.322,
+      "normalised_entropy": 0.879,
+      "effective_alphabet": 13.93,
+      "top5_share": 0.582,
+      "most_frequent": "V",
+      "most_frequent_share": 0.227
+    },
+    {
+      "series": "SS",
+      "alphabet_size": 3,
+      "sequences": 10497,
+      "symbols": 1229551,
+      "entropy_bits": 1.524,
+      "max_entropy_bits": 1.585,
+      "normalised_entropy": 0.962,
+      "effective_alphabet": 2.88,
+      "top5_share": 1.0,
+      "most_frequent": "L",
+      "most_frequent_share": 0.42
+    }
+  ],
+  "conditional_entropy": [
+    {
+      "series": "Synth",
+      "entropy_bits": 4.322,
+      "conditional_entropy_bits": 4.322,
+      "mutual_information_bits": 0.0
+    },
+    {
+      "series": "AA",
+      "entropy_bits": 4.162,
+      "conditional_entropy_bits": 4.155,
+      "mutual_information_bits": 0.007
+    },
+    {
+      "series": "3Di",
+      "entropy_bits": 3.8,
+      "conditional_entropy_bits": 3.249,
+      "mutual_information_bits": 0.551
+    },
+    {
+      "series": "SS",
+      "entropy_bits": 1.524,
+      "conditional_entropy_bits": 0.649,
+      "mutual_information_bits": 0.875
+    }
+  ]
+}
