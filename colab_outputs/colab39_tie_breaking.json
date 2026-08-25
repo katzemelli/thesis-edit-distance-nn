@@ -1,0 +1,191 @@
+{
+  "config": {
+    "B_max": 1000,
+    "B_reported": 200,
+    "seed": 20260825,
+    "k": 10,
+    "high": 0.7
+  },
+  "collections": {
+    "Synth": 7296,
+    "AA": 10501,
+    "3Di": 10501,
+    "SS": 10497
+  },
+  "high_similarity_pairs": {
+    "Synth": 1205,
+    "AA": 5,
+    "3Di": 6009,
+    "SS": 623077
+  },
+  "eligible_queries": {
+    "Synth": 2410,
+    "AA": 10,
+    "3Di": 347,
+    "SS": 10002
+  },
+  "tie_diagnostics": [
+    {
+      "method": "length",
+      "dataset": "Synth",
+      "queries": 2410,
+      "frac_with_tie": 0.9987551867219917,
+      "median_block": 48.0,
+      "max_block": 67,
+      "mean_block": 47.93734439834025
+    },
+    {
+      "method": "length",
+      "dataset": "AA",
+      "queries": 10,
+      "frac_with_tie": 1.0,
+      "median_block": 76.5,
+      "max_block": 107,
+      "mean_block": 76.7
+    },
+    {
+      "method": "length",
+      "dataset": "3Di",
+      "queries": 347,
+      "frac_with_tie": 1.0,
+      "median_block": 76.0,
+      "max_block": 109,
+      "mean_block": 75.507204610951
+    },
+    {
+      "method": "length",
+      "dataset": "SS",
+      "queries": 10002,
+      "frac_with_tie": 1.0,
+      "median_block": 75.0,
+      "max_block": 108,
+      "mean_block": 73.82863427314537
+    },
+    {
+      "method": "dice",
+      "dataset": "Synth",
+      "queries": 2410,
+      "frac_with_tie": 0.14771784232365145,
+      "median_block": 1.0,
+      "max_block": 5,
+      "mean_block": 1.1697095435684648
+    },
+    {
+      "method": "dice",
+      "dataset": "AA",
+      "queries": 10,
+      "frac_with_tie": 0.2,
+      "median_block": 1.0,
+      "max_block": 2,
+      "mean_block": 1.2
+    },
+    {
+      "method": "dice",
+      "dataset": "3Di",
+      "queries": 347,
+      "frac_with_tie": 0.5043227665706052,
+      "median_block": 2.0,
+      "max_block": 14,
+      "mean_block": 2.2478386167146973
+    },
+    {
+      "method": "dice",
+      "dataset": "SS",
+      "queries": 10002,
+      "frac_with_tie": 1.0,
+      "median_block": 885.0,
+      "max_block": 2730,
+      "mean_block": 1291.869426114777
+    }
+  ],
+  "spread": [
+    {
+      "method": "dice",
+      "dataset": "3Di",
+      "queries": 347,
+      "map10_mean": 0.23945,
+      "sd_single_ordering": 0.001805,
+      "se_at_200": 0.000128,
+      "spread_1000": 0.010772,
+      "frac_queries_with_tie": 0.5043,
+      "median_tied_block": 2.0
+    },
+    {
+      "method": "dice",
+      "dataset": "AA",
+      "queries": 10,
+      "map10_mean": 1.0,
+      "sd_single_ordering": 0.0,
+      "se_at_200": 0.0,
+      "spread_1000": 0.0,
+      "frac_queries_with_tie": 0.2,
+      "median_tied_block": 1.0
+    },
+    {
+      "method": "dice",
+      "dataset": "SS",
+      "queries": 10002,
+      "map10_mean": 0.02418,
+      "sd_single_ordering": 0.000401,
+      "se_at_200": 2.8e-05,
+      "spread_1000": 0.002693,
+      "frac_queries_with_tie": 1.0,
+      "median_tied_block": 885.0
+    },
+    {
+      "method": "dice",
+      "dataset": "Synth",
+      "queries": 2410,
+      "map10_mean": 1.0,
+      "sd_single_ordering": 0.0,
+      "se_at_200": 0.0,
+      "spread_1000": 0.0,
+      "frac_queries_with_tie": 0.1477,
+      "median_tied_block": 1.0
+    },
+    {
+      "method": "length",
+      "dataset": "3Di",
+      "queries": 347,
+      "map10_mean": 0.00804,
+      "sd_single_ordering": 0.001452,
+      "se_at_200": 0.000103,
+      "spread_1000": 0.011667,
+      "frac_queries_with_tie": 1.0,
+      "median_tied_block": 76.0
+    },
+    {
+      "method": "length",
+      "dataset": "AA",
+      "queries": 10,
+      "map10_mean": 0.1,
+      "sd_single_ordering": 0.0,
+      "se_at_200": 0.0,
+      "spread_1000": 0.0,
+      "frac_queries_with_tie": 1.0,
+      "median_tied_block": 76.5
+    },
+    {
+      "method": "length",
+      "dataset": "SS",
+      "queries": 10002,
+      "map10_mean": 0.01631,
+      "sd_single_ordering": 0.000339,
+      "se_at_200": 2.4e-05,
+      "spread_1000": 0.002251,
+      "frac_queries_with_tie": 1.0,
+      "median_tied_block": 75.0
+    },
+    {
+      "method": "length",
+      "dataset": "Synth",
+      "queries": 2410,
+      "map10_mean": 0.00982,
+      "sd_single_ordering": 0.001429,
+      "se_at_200": 0.000101,
+      "spread_1000": 0.008999,
+      "frac_queries_with_tie": 0.9988,
+      "median_tied_block": 48.0
+    }
+  ]
+}

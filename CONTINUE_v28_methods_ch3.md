@@ -417,7 +417,36 @@ Neighbours in the same paragraph: **note 66** "what is ranking variable supposed
 that means?" (on **redundancy-reduced AA**). ⚠ Note 68 has **not** been checked against what §3.4
 currently says.
 
-### 10.5 File loss, 2026-08-25
+### 10.5 Ch.3 restructured; protocol constants written up separately
+
+**`PROTOCOL_CONSTANTS_2026-08-25.md`** (repo root) is now the single source for note 67. It holds the
+cap sweep, the independent-pair sweep, what may and may not be claimed, and the unpersisted
+chance-floor warning. **Read it instead of re-deriving any of this.** Headlines: 400 was never
+derived (nine of ten deciles saturate for any cap from 50 to **945**; smaller caps balance better,
+larger caps give more pairs); 8,000 stays and is *necessary* (at n_indep = 0 the two lowest deciles
+hold 0, 0 and 2 pairs) but not critical (3,598 → 3,707 over a tenfold range).
+
+**Structural rule agreed 2026-08-25:** *forward references may repeat; procedures and states may
+not.* Plus: facts true of every dataset and method are stated once in the chapter opening; **§3.4
+describes populations, §3.6 describes the samples drawn from them.** Applied the same day —
+
+- §3.4.2 rewritten: the duplicated balancing procedure removed (its version described a *different*
+  algorithm and contradicted itself), the generator now a backward pointer to §3.3.1, and two
+  forward pointers to `sec:chancefloor` and `sec:evalprotocol` in the closing sentence.
+- "The remaining three datasets…" moved from §3.4.2 to §3.4.3, where representations are the subject.
+- Five duplicate invariants deleted: §3.3.1's "None of the evaluation datasets… update the model
+  parameters", §3.4.3's "Sequence pairs are formed only within the same representation", §3.5's
+  "All methods are evaluated using the same sequence collections…", §3.6's "The trained SNNEED
+  encoder remains frozen throughout evaluation", §3.6.6's "The reference methods are compared by
+  ordering alone."
+
+Build after restructure: **54 pages · 0 errors · 0 warnings · 0 unresolved references.**
+
+⚠ **OWED: a small dedicated section for the rationale**, in ch.4 or ch.5 or as an appendix section —
+the chance floor, the resulting score imbalance and both sweeps belong in one place. Two forward
+references already point at `sec:chancefloor`. **Not yet written** (decision 2026-08-25).
+
+### 10.6 File loss, 2026-08-25
 
 Both handoffs were deleted from the working tree mid-session. v27 was recovered from git; **v28 was
 never committed and was rebuilt from the session transcript.** `colab37_summary.json` and
