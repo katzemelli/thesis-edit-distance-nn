@@ -200,6 +200,57 @@ Notes on the wording:
 
 ---
 
+## 4b. Experiment E — the candidate count and the population (added on request)
+
+The chain is not `200,000 → bin → cap`. It is:
+
+```
+candidates = 200,000 random pairs  +  every pair ≥ 0.70, injected whole
+           → bin into 10 intervals → cap each at 400
+```
+
+**So the candidate count governs only the range below 0.70.** At and above it the supply is already
+complete and no draw size changes anything. That splits the question cleanly:
+
+- Raising the count can only **add** pairs to an interval, so it can never *reduce* the number of
+  intervals at the bound. It can only push a short interval up to it.
+- The only intervals it could rescue are those **below 0.70 that fall short of 400**. From the
+  sampled supply those are AA's interval 3 (11 pairs, would need roughly a 36-fold larger draw) and
+  3Di's interval 6 (68 pairs, roughly 6-fold). Everything else below 0.70 is already over the bound
+  at 200,000, and everything above it is injected.
+
+`SWEEP_E` sweeps 100,000 → 1,000,000 nested, on the three CATH datasets, with the injection folded
+in, and reports `at_bound`, `short_below_070` and `retained`. Three panels in
+`colab38_cand_sweep.png`: intervals at the bound vs draw size, retained pairs vs draw size, and the
+per-interval retained profile at the protocol count.
+
+Synth is deliberately absent — it is generated pairwise, not sampled, and its equivalent knob is
+Experiment A's `n_indep`.
+
+**The population table.** Intervals 7–9 are **exact** — the relevance scan enumerated every pair
+≥ 0.70, which is what makes the injection possible. Below 0.70 the table is the 1,000,000-pair draw
+scaled to all C(n,2) ≈ 55M pairs, with a 95% binomial interval printed wherever the sample count is
+under 30. An exact histogram below 0.70 means scanning 55M pairs per dataset; it would confirm the
+dense intervals to three significant figures and change nothing. **Caption it "estimated" or do the
+scan — do not print it as exact.**
+
+### ⚠ What balancing cannot buy
+
+The goal is comparability across datasets for the per-range Spearman. Balancing equalises the
+intervals **that exist**. It cannot create ones that do not:
+
+- AA's collection contains **5 pairs at ≥ 0.70 in total**, out of 55 million. After injection its
+  evaluation set spans 5 non-empty intervals; SS spans 10.
+- No bound and no candidate count changes that. It is a fact about the collection.
+
+So a cross-dataset comparison of a *single* overall Spearman is still reading across sets with
+different interval coverage. That is precisely why the far/mid/high split exists, and why the AA high
+range carries $n = 10$ queries and 5 relevant pairs. Worth stating in the appendix rather than
+leaving the reader to infer that balancing made the four sets equivalent — it made them *evenly
+weighted within their own support*, which is a weaker and true claim.
+
+---
+
 ## 5. Follow-ups this creates
 
 1. **Table B.1 `Retained` must be corrected** whether or not the sweep is extended — it disagrees
