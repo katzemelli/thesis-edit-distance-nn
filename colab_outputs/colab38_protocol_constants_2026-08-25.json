@@ -1,0 +1,318 @@
+{
+  "indep_sweep": [
+    {
+      "n_indep": 0,
+      "generated": 20000,
+      "d0": 0,
+      "d1": 0,
+      "d2": 2,
+      "d3": 945,
+      "d4": 4437,
+      "d5": 4033,
+      "d6": 3277,
+      "d7": 2696,
+      "d8": 2372,
+      "d9": 2238,
+      "deciles_at_cap": 7,
+      "balanced": 2802
+    },
+    {
+      "n_indep": 1000,
+      "generated": 21000,
+      "d0": 5,
+      "d1": 808,
+      "d2": 189,
+      "d3": 945,
+      "d4": 4437,
+      "d5": 4033,
+      "d6": 3277,
+      "d7": 2696,
+      "d8": 2372,
+      "d9": 2238,
+      "deciles_at_cap": 8,
+      "balanced": 3394
+    },
+    {
+      "n_indep": 2000,
+      "generated": 22000,
+      "d0": 10,
+      "d1": 1604,
+      "d2": 388,
+      "d3": 945,
+      "d4": 4437,
+      "d5": 4033,
+      "d6": 3277,
+      "d7": 2696,
+      "d8": 2372,
+      "d9": 2238,
+      "deciles_at_cap": 8,
+      "balanced": 3598
+    },
+    {
+      "n_indep": 4000,
+      "generated": 24000,
+      "d0": 22,
+      "d1": 3204,
+      "d2": 776,
+      "d3": 945,
+      "d4": 4437,
+      "d5": 4033,
+      "d6": 3277,
+      "d7": 2696,
+      "d8": 2372,
+      "d9": 2238,
+      "deciles_at_cap": 9,
+      "balanced": 3622
+    },
+    {
+      "n_indep": 6000,
+      "generated": 26000,
+      "d0": 38,
+      "d1": 4801,
+      "d2": 1163,
+      "d3": 945,
+      "d4": 4437,
+      "d5": 4033,
+      "d6": 3277,
+      "d7": 2696,
+      "d8": 2372,
+      "d9": 2238,
+      "deciles_at_cap": 9,
+      "balanced": 3638
+    },
+    {
+      "n_indep": 8000,
+      "generated": 28000,
+      "d0": 48,
+      "d1": 6414,
+      "d2": 1540,
+      "d3": 945,
+      "d4": 4437,
+      "d5": 4033,
+      "d6": 3277,
+      "d7": 2696,
+      "d8": 2372,
+      "d9": 2238,
+      "deciles_at_cap": 9,
+      "balanced": 3648
+    },
+    {
+      "n_indep": 10000,
+      "generated": 30000,
+      "d0": 59,
+      "d1": 7990,
+      "d2": 1953,
+      "d3": 945,
+      "d4": 4437,
+      "d5": 4033,
+      "d6": 3277,
+      "d7": 2696,
+      "d8": 2372,
+      "d9": 2238,
+      "deciles_at_cap": 9,
+      "balanced": 3659
+    },
+    {
+      "n_indep": 15000,
+      "generated": 35000,
+      "d0": 81,
+      "d1": 11929,
+      "d2": 2992,
+      "d3": 945,
+      "d4": 4437,
+      "d5": 4033,
+      "d6": 3277,
+      "d7": 2696,
+      "d8": 2372,
+      "d9": 2238,
+      "deciles_at_cap": 9,
+      "balanced": 3681
+    },
+    {
+      "n_indep": 20000,
+      "generated": 40000,
+      "d0": 107,
+      "d1": 15848,
+      "d2": 4047,
+      "d3": 945,
+      "d4": 4437,
+      "d5": 4033,
+      "d6": 3277,
+      "d7": 2696,
+      "d8": 2372,
+      "d9": 2238,
+      "deciles_at_cap": 9,
+      "balanced": 3707
+    }
+  ],
+  "cap_sweep": [
+    {
+      "cap": 50,
+      "balanced": 498,
+      "deciles_saturated": 9,
+      "smallest_decile": 48,
+      "ratio_largest_smallest": 1.04
+    },
+    {
+      "cap": 100,
+      "balanced": 948,
+      "deciles_saturated": 9,
+      "smallest_decile": 48,
+      "ratio_largest_smallest": 2.08
+    },
+    {
+      "cap": 200,
+      "balanced": 1848,
+      "deciles_saturated": 9,
+      "smallest_decile": 48,
+      "ratio_largest_smallest": 4.17
+    },
+    {
+      "cap": 400,
+      "balanced": 3648,
+      "deciles_saturated": 9,
+      "smallest_decile": 48,
+      "ratio_largest_smallest": 8.33
+    },
+    {
+      "cap": 800,
+      "balanced": 7248,
+      "deciles_saturated": 9,
+      "smallest_decile": 48,
+      "ratio_largest_smallest": 16.67
+    },
+    {
+      "cap": 1600,
+      "balanced": 13733,
+      "deciles_saturated": 7,
+      "smallest_decile": 48,
+      "ratio_largest_smallest": 33.33
+    },
+    {
+      "cap": 3200,
+      "balanced": 22639,
+      "deciles_saturated": 4,
+      "smallest_decile": 48,
+      "ratio_largest_smallest": 66.67
+    },
+    {
+      "cap": 10000,
+      "balanced": 28000,
+      "deciles_saturated": 0,
+      "smallest_decile": 48,
+      "ratio_largest_smallest": 133.62
+    }
+  ],
+  "supply_per_decile": [
+    {
+      "dataset": "AA",
+      "d0": 405,
+      "d1": 109425,
+      "d2": 90144,
+      "d3": 11,
+      "d4": 0,
+      "d5": 0,
+      "d6": 0,
+      "d7": 0,
+      "d8": 0,
+      "d9": 0,
+      "deciles_at_cap": 3,
+      "balanced": 1211
+    },
+    {
+      "dataset": "3Di",
+      "d0": 1931,
+      "d1": 48632,
+      "d2": 117626,
+      "d3": 26680,
+      "d4": 4432,
+      "d5": 600,
+      "d6": 68,
+      "d7": 11,
+      "d8": 5,
+      "d9": 0,
+      "deciles_at_cap": 6,
+      "balanced": 2484
+    },
+    {
+      "dataset": "SS",
+      "d0": 1069,
+      "d1": 6910,
+      "d2": 19391,
+      "d3": 46490,
+      "d4": 69111,
+      "d5": 44212,
+      "d6": 10555,
+      "d7": 2065,
+      "d8": 174,
+      "d9": 7,
+      "deciles_at_cap": 8,
+      "balanced": 3381
+    },
+    {
+      "dataset": "Synth",
+      "d0": 48,
+      "d1": 6414,
+      "d2": 1540,
+      "d3": 945,
+      "d4": 4437,
+      "d5": 4033,
+      "d6": 3277,
+      "d7": 2696,
+      "d8": 2372,
+      "d9": 2238,
+      "deciles_at_cap": 9,
+      "balanced": 3648
+    }
+  ],
+  "training_match": [
+    {
+      "n_indep": 0,
+      "total": 20000,
+      "median": 0.6167,
+      "tv_distance_to_training": 0.0166
+    },
+    {
+      "n_indep": 2000,
+      "total": 22000,
+      "median": 0.5888,
+      "tv_distance_to_training": 0.0908
+    },
+    {
+      "n_indep": 4000,
+      "total": 24000,
+      "median": 0.561,
+      "tv_distance_to_training": 0.1666
+    },
+    {
+      "n_indep": 6000,
+      "total": 26000,
+      "median": 0.5349,
+      "tv_distance_to_training": 0.2307
+    },
+    {
+      "n_indep": 8000,
+      "total": 28000,
+      "median": 0.5116,
+      "tv_distance_to_training": 0.2856
+    },
+    {
+      "n_indep": 10000,
+      "total": 30000,
+      "median": 0.4898,
+      "tv_distance_to_training": 0.3332
+    },
+    {
+      "n_indep": 15000,
+      "total": 35000,
+      "median": 0.4382,
+      "tv_distance_to_training": 0.4285
+    },
+    {
+      "n_indep": 20000,
+      "total": 40000,
+      "median": 0.277,
+      "tv_distance_to_training": 0.4999
+    }
+  ]
+}
